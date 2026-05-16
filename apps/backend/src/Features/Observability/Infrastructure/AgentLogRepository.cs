@@ -326,10 +326,9 @@ internal sealed class AgentLogRepository : IAgentLogRepository
             resourceKind = ResourceLogKinds.Channel;
             resourceId = r.ChannelConnectionId.Value;
         }
-        else if (r.AgentId.HasValue)
+        else if (r.AgentId.HasValue && resourceId is null && resourceKind == ResourceLogKinds.Agent)
         {
-            resourceKind = ResourceLogKinds.Agent;
-            resourceId ??= r.AgentId.Value;
+            resourceId = r.AgentId.Value;
         }
 
         return new ResourceLogEntity

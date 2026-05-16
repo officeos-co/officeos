@@ -3,8 +3,10 @@ using Microsoft.Extensions.Logging.Abstractions;
 using OffceOs.Database;
 using OffceOs.Database.Models;
 using OffceOs.Application.Features.Observability;
+using OffceOs.Application.Features.ControlPlane;
 using OffceOs.Domain.Common.ValueObjects;
 using OffceOs.Domain.Features.Agents;
+using OffceOs.Domain.Features.ControlPlane;
 using OffceOs.Domain.Features.Observability;
 using OffceOs.Infrastructure.Features.Agents;
 using OffceOs.Infrastructure.Features.Observability;
@@ -145,7 +147,7 @@ public sealed class AgentActivitySummaryTests
     }
 
     private static AgentLogService CreateService(EaosDbContext db) =>
-        new(new AgentLogRepository(db));
+        new(new AgentLogRepository(db), new FakeControlPlaneResourceCatalogService());
 
     private static async Task AddAgentAsync(EaosDbContext db, Guid agentId, Guid workspaceId)
     {
@@ -160,5 +162,18 @@ public sealed class AgentActivitySummaryTests
             WorkspaceId = workspaceId,
         });
         await db.SaveChangesAsync();
+    }
+
+    private sealed class FakeControlPlaneResourceCatalogService : IControlPlaneResourceCatalogService
+    {
+        public IReadOnlyList<ControlPlaneResourceDescriptor> List() => ControlPlaneResourceRegistry.Resources;
+
+        public ControlPlaneResourceDescriptor? Find(string kindOrAlias)
+        {
+            return ControlPlaneResourceRegistry.Resources.FirstOrDefault(resource =>
+                string.Equals(resource.Kind, kindOrAlias, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(resource.Singular, kindOrAlias, StringComparison.OrdinalIgnoreCase) ||
+                resource.Aliases.Any(alias => string.Equals(alias, kindOrAlias, StringComparison.OrdinalIgnoreCase)));
+        }
     }
 }

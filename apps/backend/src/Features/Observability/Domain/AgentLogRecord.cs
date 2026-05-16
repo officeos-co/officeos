@@ -154,9 +154,14 @@ public sealed class AgentLogRecord
 public static class ResourceLogKinds
 {
     public const string Agent = "Agent";
+    public const string Browser = "Browser";
     public const string Channel = "Channel";
+    public const string Credential = "Credential";
     public const string IntegrationDeployment = "IntegrationDeployment";
+    public const string MemoryStore = "MemoryStore";
+    public const string Model = "Model";
     public const string Provider = "Provider";
+    public const string Routine = "Routine";
     public const string Workspace = "Workspace";
     public const string WorkspaceBinding = "WorkspaceBinding";
 }

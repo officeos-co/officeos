@@ -2,7 +2,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using OffceOs.Api.Common;
+using OffceOs.Api.Features.ControlPlane;
 using OffceOs.Application;
+using OffceOs.Application.Features.ControlPlane;
+using OffceOs.Domain.Features.ControlPlane;
 using OffceOs.Domain.Features.Management;
 using OffceOs.Extensions;
 using Xunit;
@@ -21,10 +24,11 @@ public sealed class ControlPlaneResourceCatalogTests
         var catalog = services.GetRequiredService<IControlPlaneResourceCatalogService>();
         var resources = catalog.List();
 
-        Assert.Contains(resources, resource => resource.Kind == "agents" && resource.Capabilities.Contains("logs"));
+        Assert.Contains(resources, resource => resource.Kind == "agents" && resource.Capabilities.OfType<LogsControlPlaneResourceCapabilityRecord>().Any());
         Assert.Contains(resources, resource => resource.Kind == "credentials" && resource.Aliases.Contains("credential"));
-        Assert.Contains(resources, resource => resource.Kind == "models" && !resource.Capabilities.Contains("delete"));
+        Assert.Contains(resources, resource => resource.Kind == "models" && !resource.Capabilities.OfType<DeleteControlPlaneResourceCapabilityRecord>().Any());
         Assert.Equal("memory-stores", catalog.Find("memorystore")?.Kind);
+        Assert.All(resources, resource => Assert.Contains(resource.Capabilities, capability => capability is LogsControlPlaneResourceCapabilityRecord));
     }
 
     [Fact]
@@ -73,7 +77,7 @@ public sealed class ControlPlaneResourceCatalogTests
                 DisplayName: "Widgets",
                 Description: "Widget resources",
                 Icon: "package",
-                Capabilities: ["list"],
+                Capabilities: [ControlPlaneResourceCapabilityRegistry.List],
                 DisplayFields: ["name"]),
         ];
 

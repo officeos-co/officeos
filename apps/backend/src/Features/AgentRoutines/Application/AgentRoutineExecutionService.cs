@@ -6,6 +6,7 @@ internal sealed class AgentRoutineExecutionService : IAgentRoutineExecutionServi
     private readonly IAgentLogService _agentLogService;
     private readonly IAgentService _agentService;
     private readonly CredentialProtector _credentialProtector;
+    private readonly IPublisher _publisher;
     private readonly ILogger<AgentRoutineExecutionService> _logger;
 
     public AgentRoutineExecutionService(
@@ -13,22 +14,25 @@ internal sealed class AgentRoutineExecutionService : IAgentRoutineExecutionServi
         IAgentLogService agentLogService,
         IAgentService agentService,
         CredentialProtector credentialProtector,
+        IPublisher publisher,
         ILogger<AgentRoutineExecutionService> logger)
     {
         _agentRoutineRepository = agentRoutineRepository;
         _agentLogService = agentLogService;
         _agentService = agentService;
         _credentialProtector = credentialProtector;
+        _publisher = publisher;
         _logger = logger;
     }
 
     public async Task<AgentRoutineExecutionResult> RunDueSchedulesAsync(DateTime now, CancellationToken ct = default)
     {
-        var routines = await _agentRoutineRepository.ListAllEnabledAsync(ct);
+        var routines = await _agentRoutineRepository.ListAllEnabledForExecutionAsync(ct);
         var fired = new List<Guid>();
 
-        foreach (var routine in routines)
+        foreach (var execution in routines)
         {
+            var routine = execution.Routine;
             foreach (var trigger in routine.Triggers.Where(trigger => trigger.Enabled && trigger.Kind == AgentRoutineTriggerKinds.Schedule))
             {
                 try
@@ -44,7 +48,7 @@ internal sealed class AgentRoutineExecutionService : IAgentRoutineExecutionServi
                     if (trigger.NextRunAt > now)
                         continue;
 
-                    await ExecuteAsync(routine, trigger, now, null, ct);
+                    await ExecuteAsync(routine, trigger, now, null, execution.WorkspaceId, ct);
                     trigger.SetNextRun(NextOccurrence(expression, now));
                     await _agentRoutineRepository.UpsertAsync(routine, ct);
                     fired.Add(routine.Id);
@@ -54,6 +58,15 @@ internal sealed class AgentRoutineExecutionService : IAgentRoutineExecutionServi
                     _logger.LogError(ex, "Failed to execute scheduled routine trigger {TriggerId}", trigger.Id);
                     var error = new AgentError(AgentErrorCategory.TurnOrchestration, $"Routine trigger '{trigger.Name}' failed: {ex.Message}", ex.ToString());
                     await _agentLogService.AppendAsync(error.ToLogRecord(routine.AgentId), ct);
+                    await _publisher.Publish(new RoutineTriggerFailedEvent(
+                        routine.Id,
+                        routine.Name,
+                        routine.AgentId,
+                        execution.WorkspaceId,
+                        trigger.Id,
+                        trigger.Name,
+                        trigger.Kind,
+                        ex.Message), ct);
                 }
             }
         }
@@ -75,7 +88,7 @@ internal sealed class AgentRoutineExecutionService : IAgentRoutineExecutionServi
             return new AgentRoutineExecutionResult(0, []);
 
         var currentTrigger = routine.Triggers.First(item => item.Id == trigger.Id);
-        await ExecuteAsync(routine, currentTrigger, DateTime.UtcNow, payloadJson, ct);
+        await ExecuteAsync(routine, currentTrigger, DateTime.UtcNow, payloadJson, null, ct);
         await _agentRoutineRepository.UpsertAsync(routine, ct);
         return new AgentRoutineExecutionResult(1, [routine.Id]);
     }
@@ -90,12 +103,13 @@ internal sealed class AgentRoutineExecutionService : IAgentRoutineExecutionServi
         if (parts.Length != 2)
             return new AgentRoutineExecutionResult(0, []);
 
-        var routines = await _agentRoutineRepository.ListAllEnabledAsync(ct);
+        var routines = await _agentRoutineRepository.ListAllEnabledForExecutionAsync(ct);
         var fired = new List<Guid>();
         var now = DateTime.UtcNow;
 
-        foreach (var routine in routines)
+        foreach (var execution in routines)
         {
+            var routine = execution.Routine;
             var changed = false;
             foreach (var trigger in routine.Triggers.Where(trigger => trigger.Enabled && trigger.Kind == AgentRoutineTriggerKinds.GitHub))
             {
@@ -106,7 +120,7 @@ internal sealed class AgentRoutineExecutionService : IAgentRoutineExecutionServi
                     || !config.Events.Any(item => item.Equals(request.Event, StringComparison.OrdinalIgnoreCase)))
                     continue;
 
-                await ExecuteAsync(routine, trigger, now, request.Payload, ct);
+                await ExecuteAsync(routine, trigger, now, request.Payload, execution.WorkspaceId, ct);
                 fired.Add(routine.Id);
                 changed = true;
             }
@@ -129,17 +143,33 @@ internal sealed class AgentRoutineExecutionService : IAgentRoutineExecutionServi
             return new AgentRoutineExecutionResult(0, []);
 
         var currentTrigger = routine.Triggers.First(item => item.Id == trigger.Id);
-        await ExecuteAsync(routine, currentTrigger, DateTime.UtcNow, payloadJson, ct);
+        await ExecuteAsync(routine, currentTrigger, DateTime.UtcNow, payloadJson, null, ct);
         await _agentRoutineRepository.UpsertAsync(routine, ct);
         return new AgentRoutineExecutionResult(1, [routine.Id]);
     }
 
-    private async Task ExecuteAsync(AgentRoutineRecord routine, AgentRoutineTriggerRecord trigger, DateTime now, string? payloadJson, CancellationToken ct)
+    private async Task ExecuteAsync(
+        AgentRoutineRecord routine,
+        AgentRoutineTriggerRecord trigger,
+        DateTime now,
+        string? payloadJson,
+        Guid? workspaceId,
+        CancellationToken ct)
     {
         var prompt = BuildPrompt(routine, trigger, payloadJson);
-        await _agentService.SendMessageAsync(routine.AgentId, prompt, Guid.Empty, ct, AgentWorkPurposeKinds.Routine);
+        var work = await _agentService.SendMessageAsync(routine.AgentId, prompt, Guid.Empty, ct, AgentWorkPurposeKinds.Routine);
         routine.MarkTriggered(now);
         trigger.MarkTriggered(now);
+        await _publisher.Publish(new RoutineTriggerFiredEvent(
+            routine.Id,
+            routine.Name,
+            routine.AgentId,
+            workspaceId ?? work.WorkspaceId,
+            trigger.Id,
+            trigger.Name,
+            trigger.Kind,
+            work.CorrelationId,
+            string.IsNullOrWhiteSpace(payloadJson) ? null : payloadJson.Length), ct);
     }
 
     private static string BuildPrompt(AgentRoutineRecord routine, AgentRoutineTriggerRecord trigger, string? payloadJson)

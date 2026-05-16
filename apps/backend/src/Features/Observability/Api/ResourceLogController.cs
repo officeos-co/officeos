@@ -18,24 +18,28 @@ public sealed class ResourceLogController : ControllerBase
         [FromQuery] string? purpose,
         [FromQuery] bool? follow,
         [FromServices] IWorkspaceService workspaces,
+        [FromServices] IControlPlaneResourceCatalogService catalog,
         [FromServices] IAgentLogService logs,
         CancellationToken ct)
     {
         var scope = await RequireScopeAsync(workspaces, ct);
         if (scope is null) return Unauthorized(new { error = "Unauthenticated." });
 
-        _ = follow;
+        var resourceKind = ResolveResourceLogKind(kind, catalog);
+        if (resourceKind is null)
+            return NotFound(new { error = $"Resource kind '{kind}' was not found." });
+
         var parsedType = ParseLogType(type);
         if (type is not null && parsedType is null)
             return BadRequest(new { error = $"Log type '{type}' is not supported." });
 
         if (follow == true)
-            return await StreamResourceLogs(kind, name, tail, since, sinceTime, parsedType, severity, correlationId, workStatus, purpose, scope.Value.WorkspaceId, logs, ct);
+            return await StreamResourceLogs(resourceKind, name, tail, since, sinceTime, parsedType, severity, correlationId, workStatus, purpose, scope.Value.WorkspaceId, logs, ct);
 
         var resourceId = Guid.TryParse(name, out var parsedResourceId) ? parsedResourceId : (Guid?)null;
         var page = await logs.ListAsync(new AgentLogQueryRequest(
             WorkspaceId: scope.Value.WorkspaceId,
-            ResourceKind: NormalizeResourceLogKind(kind),
+            ResourceKind: resourceKind,
             ResourceName: name,
             ResourceId: resourceId,
             Type: parsedType,
@@ -46,37 +50,17 @@ public sealed class ResourceLogController : ControllerBase
             FromInclusive: sinceTime ?? ParseSince(since),
             Limit: tail ?? 100), ct);
 
-        var lines = page.Items
+        var items = page.Items
             .OrderBy(item => item.Time)
             .ThenBy(item => item.Id)
-            .Select(FormatResourceLogLine);
-        return Content(string.Join('\n', lines), "text/plain; charset=utf-8");
-    }
-
-    [HttpGet("agents/{name}/logs/stream")]
-    [HttpGet("agent/{name}/logs/stream")]
-    public async Task<IActionResult> StreamAgentLogs(
-        string name,
-        [FromQuery] int? tail,
-        [FromQuery] string? since,
-        [FromQuery] DateTime? sinceTime,
-        [FromQuery] string? type,
-        [FromQuery] string? severity,
-        [FromQuery] string? correlationId,
-        [FromQuery] string? workStatus,
-        [FromQuery] string? purpose,
-        [FromServices] IWorkspaceService workspaces,
-        [FromServices] IAgentLogService logs,
-        CancellationToken ct)
-    {
-        var scope = await RequireScopeAsync(workspaces, ct);
-        if (scope is null) return Unauthorized(new { error = "Unauthenticated." });
-
-        var parsedType = ParseLogType(type);
-        if (type is not null && parsedType is null)
-            return BadRequest(new { error = $"Log type '{type}' is not supported." });
-
-        return await StreamResourceLogs(ResourceLogKinds.Agent, name, tail, since, sinceTime, parsedType, severity, correlationId, workStatus, purpose, scope.Value.WorkspaceId, logs, ct);
+            .Select(ToResourceLogPayload);
+        return Ok(new
+        {
+            kind = resourceKind,
+            name,
+            total = page.Total,
+            items,
+        });
     }
 
     private async Task<(Guid UserId, Guid WorkspaceId)?> RequireScopeAsync(IWorkspaceService workspaces, CancellationToken ct)
@@ -88,17 +72,10 @@ public sealed class ResourceLogController : ControllerBase
         return (user.Id, workspace.Id);
     }
 
-    private static string NormalizeResourceLogKind(string kind)
+    private static string? ResolveResourceLogKind(string kind, IControlPlaneResourceCatalogService catalog)
     {
-        var value = kind.Trim().ToLowerInvariant();
-        return value switch
-        {
-            "agent" or "agents" => ResourceLogKinds.Agent,
-            "channel" or "channels" => ResourceLogKinds.Channel,
-            "provider" or "providers" => ResourceLogKinds.Provider,
-            "integration" or "integrations" or "integrationdeployment" or "integrationdeployments" or "integration-deployment" or "integration-deployments" => ResourceLogKinds.IntegrationDeployment,
-            _ => kind.Trim(),
-        };
+        var descriptor = catalog.Find(kind);
+        return descriptor is null ? null : AgentLogService.ResourceLogKindFor(descriptor.Singular);
     }
 
     private static AgentLogType? ParseLogType(string? type)
@@ -134,12 +111,6 @@ public sealed class ResourceLogController : ControllerBase
         return duration == TimeSpan.Zero ? null : DateTime.UtcNow.Subtract(duration);
     }
 
-    private static string FormatResourceLogLine(AgentLogRecord log)
-    {
-        var resource = log.ResourceName ?? log.ResourceId?.ToString("N") ?? "-";
-        return $"{log.Time:O} {log.Severity} {log.ResourceKind}/{resource} {log.Type}: {log.Content}";
-    }
-
     private async Task<IActionResult> StreamResourceLogs(
         string kind,
         string name,
@@ -169,7 +140,7 @@ public sealed class ResourceLogController : ControllerBase
             {
                 var page = await logs.ListAsync(new AgentLogQueryRequest(
                     WorkspaceId: workspaceId,
-                    ResourceKind: NormalizeResourceLogKind(kind),
+                    ResourceKind: kind,
                     ResourceName: name,
                     ResourceId: resourceId,
                     Type: type,
@@ -188,7 +159,7 @@ public sealed class ResourceLogController : ControllerBase
 
                     await Response.WriteAsync($"id: {log.Id:N}\n", ct);
                     await Response.WriteAsync("event: log\n", ct);
-                    await Response.WriteAsync($"data: {JsonSerializer.Serialize(ToStreamPayload(log))}\n\n", ct);
+                    await Response.WriteAsync($"data: {JsonSerializer.Serialize(ToResourceLogPayload(log))}\n\n", ct);
                     await Response.Body.FlushAsync(ct);
                 }
 
@@ -205,7 +176,7 @@ public sealed class ResourceLogController : ControllerBase
         return new EmptyResult();
     }
 
-    private static object ToStreamPayload(AgentLogRecord log) => new
+    private static object ToResourceLogPayload(AgentLogRecord log) => new
     {
         log.Id,
         log.AgentId,
@@ -213,6 +184,8 @@ public sealed class ResourceLogController : ControllerBase
         log.ResourceKind,
         log.ResourceId,
         log.ResourceName,
+        log.ParentResourceKind,
+        log.ParentResourceId,
         log.Type,
         log.Severity,
         log.Tool,
@@ -220,14 +193,35 @@ public sealed class ResourceLogController : ControllerBase
         log.Channel,
         log.ChannelConnectionId,
         log.Content,
-        log.MetadataJson,
+        metadata = ParseMetadata(log.MetadataJson),
         log.CorrelationId,
         log.WorkStatus,
         log.WorkPurpose,
         log.DefinitionId,
+        usage = new
+        {
+            log.Usage.InputTokens,
+            log.Usage.OutputTokens,
+            log.Usage.DurationMs,
+        },
         log.Time,
         log.StartedAt,
         log.CompletedAt,
         log.WorkError,
     };
+
+    private static object? ParseMetadata(string? metadataJson)
+    {
+        if (string.IsNullOrWhiteSpace(metadataJson))
+            return null;
+
+        try
+        {
+            return JsonSerializer.Deserialize<JsonElement>(metadataJson);
+        }
+        catch (JsonException)
+        {
+            return new { raw = metadataJson };
+        }
+    }
 }

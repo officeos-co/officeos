@@ -5,8 +5,15 @@ internal sealed class AgentLogService : IAgentLogService
     private const int ActivityPreviewMaxLength = 240;
 
     private readonly IAgentLogRepository _agentLogRepository;
+    private readonly IControlPlaneResourceCatalogService _controlPlaneResourceCatalogService;
 
-    public AgentLogService(IAgentLogRepository agentLogRepository) => _agentLogRepository = agentLogRepository;
+    public AgentLogService(
+        IAgentLogRepository agentLogRepository,
+        IControlPlaneResourceCatalogService resourceCatalog)
+    {
+        _agentLogRepository = agentLogRepository;
+        _controlPlaneResourceCatalogService = resourceCatalog;
+    }
 
     public async Task<AgentLogPage> ListAsync(AgentLogQueryRequest request, CancellationToken ct = default)
     {
@@ -93,20 +100,34 @@ internal sealed class AgentLogService : IAgentLogService
             log.Type != AgentLogType.AgentStartup &&
             !(log.Type == AgentLogType.System && log.Content == "Pod connected"));
 
-    private static string NormalizeResourceKind(string kind)
+    private string NormalizeResourceKind(string kind)
+    {
+        var descriptor = _controlPlaneResourceCatalogService.Find(kind.Trim());
+        if (descriptor is not null)
+            return ResourceLogKindFor(descriptor.Singular);
+
+        return ResourceLogKindFor(kind);
+    }
+
+    internal static string ResourceLogKindFor(string kind)
     {
         var value = kind.Trim().ToLowerInvariant();
         return value switch
         {
             "agent" or "agents" => ResourceLogKinds.Agent,
+            "browser" or "browsers" => ResourceLogKinds.Browser,
             "channel" or "channels" => ResourceLogKinds.Channel,
+            "credential" or "credentials" => ResourceLogKinds.Credential,
             "integration" or "integrations" or "integrationdeployment" or "integrationdeployments" or "integration-deployment" or "integration-deployments" => ResourceLogKinds.IntegrationDeployment,
+            "memory-store" or "memory-stores" or "memorystore" or "memorystores" => ResourceLogKinds.MemoryStore,
+            "model" or "models" => ResourceLogKinds.Model,
             "provider" or "providers" => ResourceLogKinds.Provider,
+            "routine" or "routines" => ResourceLogKinds.Routine,
             _ => kind.Trim(),
         };
     }
 
-    private static AgentLogFilter ToFilter(AgentLogQueryRequest request) => new()
+    private AgentLogFilter ToFilter(AgentLogQueryRequest request) => new()
     {
         WorkspaceId = request.WorkspaceId,
         AgentId = request.AgentId,

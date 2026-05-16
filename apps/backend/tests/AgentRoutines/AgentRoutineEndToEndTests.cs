@@ -161,7 +161,7 @@ public sealed class AgentRoutineEndToEndTests
         var keyRingPath = Path.Combine(Path.GetTempPath(), $"eaos-routine-test-keys-{Guid.NewGuid():N}");
         var credentialProtector = new CredentialProtector(DataProtectionProvider.Create(new DirectoryInfo(keyRingPath)));
         var service = new AgentRoutineService(routineRepository, agentRepository, credentialProtector);
-        var execution = new AgentRoutineExecutionService(routineRepository, logs, agents, credentialProtector, NullLogger<AgentRoutineExecutionService>.Instance);
+        var execution = new AgentRoutineExecutionService(routineRepository, logs, agents, credentialProtector, new NoopPublisher(), NullLogger<AgentRoutineExecutionService>.Instance);
         return (service, execution, agents);
     }
 
