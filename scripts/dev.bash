@@ -9,20 +9,17 @@ COMPOSE_FILE="$ROOT_DIR/docker-compose.infra.yml"
 START_INFRA="${EAOS_START_INFRA:-1}"
 DASHBOARD_DIR="$ROOT_DIR/apps/dashboard"
 VSCODE_EXTENSION_DIR="$ROOT_DIR/apps/vscode-extension"
-VSCODE_EXTENSION_VSIX="${EAOS_VSCODE_EXTENSION_VSIX:-$LOG_DIR/officeos-vscode.vsix}"
 
 usage() {
   cat <<EOF
 Usage: ./scripts/dev.bash
 
 Starts local infrastructure, the backend, and the dashboard in the background,
-then installs/updates the VS Code extension in the normal VS Code profile and
-opens this repository workspace.
+then opens a VS Code extension development window.
 Logs and PID files are written directly under .runlogs/.
 
 Set EAOS_START_INFRA=0 to skip Docker Compose infra startup.
 Set EAOS_DASHBOARD_PORT=3001 to run the dashboard on a different port.
-Set EAOS_VSCODE_EXTENSION_VSIX=/tmp/officeos.vsix to choose the packaged VSIX path.
 EOF
 }
 
@@ -209,14 +206,10 @@ echo "Preparing VS Code extension..."
   cd "$VSCODE_EXTENSION_DIR"
   npm install
   npm run compile
-  npm run package -- --out "$VSCODE_EXTENSION_VSIX"
 )
 
-echo "Installing VS Code extension into the main VS Code profile..."
-code --install-extension "$VSCODE_EXTENSION_VSIX" --force
-
-echo "Opening EnterpriseAgentOs workspace in VS Code..."
-code "$ROOT_DIR" --reuse-window
+echo "Opening VS Code extension development window..."
+code --extensionDevelopmentPath="$VSCODE_EXTENSION_DIR" --new-window
 
 cat <<EOF
 Dev processes started.
@@ -227,10 +220,6 @@ Logs:
 
 Dashboard:
   http://localhost:$DASHBOARD_PORT
-
-VS Code:
-  OfficeOS extension installed from $VSCODE_EXTENSION_VSIX
-  Reload the VS Code window if the OfficeOS extension was already active.
 
 Stop host processes:
   kill \$(cat $LOG_DIR/backend.pid)
