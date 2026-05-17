@@ -38,6 +38,7 @@ internal sealed class LlmTurnExecutor
 
     public async Task<AgentResult<LlmTurnResult>> ExecuteAsync(
         AgentRecord agent,
+        Guid sessionId,
         ConversationHistory history,
         ToolRegistry registry,
         int iteration,
@@ -48,6 +49,7 @@ internal sealed class LlmTurnExecutor
         var requestBody = _llmRequestBuilder.Build(agent, history, registry);
         await _turnEventPublisher.PublishDiagnosticAsync(
             agent.Id,
+            sessionId,
             correlationId,
             $"LLM iteration {iteration}: request built",
             ElapsedMs(requestStart),
@@ -59,6 +61,7 @@ internal sealed class LlmTurnExecutor
         {
             await _turnEventPublisher.PublishDiagnosticAsync(
                 agent.Id,
+                sessionId,
                 correlationId,
                 $"LLM iteration {iteration}: provider dispatch failed",
                 ElapsedMs(llmStart),
@@ -70,6 +73,7 @@ internal sealed class LlmTurnExecutor
         var durationMs = (int)Stopwatch.GetElapsedTime(llmStart).TotalMilliseconds;
         await _turnEventPublisher.PublishDiagnosticAsync(
             agent.Id,
+            sessionId,
             correlationId,
             $"LLM iteration {iteration}: provider stream parsed",
             durationMs,
@@ -80,6 +84,7 @@ internal sealed class LlmTurnExecutor
         {
             await _turnEventPublisher.PublishDiagnosticAsync(
                 agent.Id,
+                sessionId,
                 correlationId,
                 $"LLM provider did not return complete token usage; using estimated usage {usage.InputTokens}/{usage.OutputTokens}",
                 durationMs,

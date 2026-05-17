@@ -170,6 +170,7 @@ internal sealed class ChannelService : IChannelService
 
             await _publisher.Publish(new MessageReceivedEvent(
                 binding.AgentId,
+                Guid.NewGuid(),
                 plainText,
                 correlationId,
                 AgentWorkPurposeKinds.Channel,
@@ -230,6 +231,7 @@ internal sealed class ChannelService : IChannelService
 
             await _publisher.Publish(new MessageReceivedEvent(
                 receiverBinding.AgentId,
+                Guid.NewGuid(),
                 content,
                 correlationId,
                 AgentWorkPurposeKinds.Channel,

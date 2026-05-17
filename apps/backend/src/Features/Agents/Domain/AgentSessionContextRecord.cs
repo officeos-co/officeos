@@ -4,6 +4,7 @@ public sealed class AgentSessionContextRecord
 {
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid AgentId { get; init; }
+    public Guid SessionId { get; init; }
     public string Summary { get; set; } = string.Empty;
     public Guid? LastCompactedLogId { get; set; }
     public DateTime? LastCompactedAt { get; set; }

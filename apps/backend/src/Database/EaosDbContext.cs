@@ -50,8 +50,6 @@ public sealed class EaosDbContext : DbContext
             e.Property(a => a.Name).IsRequired().HasMaxLength(200);
             e.Property(a => a.Provider).IsRequired().HasMaxLength(64);
             e.Property(a => a.Status).IsRequired().HasMaxLength(32);
-            e.Property(a => a.PodName).HasMaxLength(128);
-            e.Property(a => a.ServiceUrl).HasMaxLength(256);
             e.Property(a => a.EncryptedBackendToken).HasMaxLength(4096);
             e.Property(a => a.Prompt).HasColumnType("text");
             e.HasOne(a => a.Workspace).WithMany().HasForeignKey(a => a.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
@@ -168,12 +166,15 @@ public sealed class EaosDbContext : DbContext
             e.HasIndex(l => new { l.WorkspaceId, l.ResourceKind, l.ResourceId, l.Time });
             e.HasIndex(l => new { l.WorkspaceId, l.ResourceKind, l.ResourceName, l.Time });
             e.HasIndex(l => l.AgentId);
+            e.HasIndex(l => l.SessionId);
             e.HasIndex(l => l.WorkspaceId);
             e.HasIndex(l => l.ChannelConnectionId);
             e.HasIndex(l => new { l.AgentId, l.Time });
+            e.HasIndex(l => new { l.SessionId, l.Time, l.Id });
             e.HasIndex(l => l.CorrelationId);
             e.HasIndex(l => new { l.WorkspaceId, l.WorkStatus, l.Time });
             e.HasIndex(l => new { l.AgentId, l.WorkStatus, l.Time });
+            e.HasIndex(l => new { l.SessionId, l.WorkStatus, l.Time });
             e.Property(l => l.Content).HasColumnType("text");
             e.Property(l => l.MetadataJson).HasColumnType("text");
             e.Property(l => l.WorkStatus).HasMaxLength(32);
@@ -185,6 +186,7 @@ public sealed class EaosDbContext : DbContext
             e.Property(l => l.Severity).IsRequired().HasMaxLength(16);
             e.Property(l => l.Type).HasConversion<string>().HasMaxLength(32);
             e.HasOne(l => l.Agent).WithMany().HasForeignKey(l => l.AgentId).IsRequired(false).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(l => l.Session).WithMany().HasForeignKey(l => l.SessionId).IsRequired(false).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(l => l.Workspace).WithMany().HasForeignKey(l => l.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -235,6 +237,10 @@ public sealed class EaosDbContext : DbContext
             e.HasIndex(r => r.AgentId);
             e.Property(r => r.Name).IsRequired().HasMaxLength(200);
             e.Property(r => r.Prompt).HasColumnType("text").IsRequired();
+            e.Property(r => r.RepositoryFullName).HasMaxLength(256);
+            e.Property(r => r.RepositoryCloneUrl).HasMaxLength(512);
+            e.Property(r => r.RepositoryBaseBranch).HasMaxLength(128);
+            e.Property(r => r.RepositoryCredentialRef).HasMaxLength(128);
             e.HasOne(r => r.Agent).WithMany()
                 .HasForeignKey(r => r.AgentId)
                 .OnDelete(DeleteBehavior.Cascade);
@@ -286,19 +292,45 @@ public sealed class EaosDbContext : DbContext
         {
             e.HasKey(s => s.Id);
             e.HasIndex(s => new { s.AgentId, s.Status });
+            e.HasIndex(s => new { s.AgentId, s.CreatedAt });
+            e.HasIndex(s => new { s.WorkspaceId, s.Status });
+            e.HasIndex(s => s.CorrelationId);
+            e.HasIndex(s => s.RoutineId);
             e.Property(s => s.Status).IsRequired().HasMaxLength(16);
+            e.Property(s => s.Source).IsRequired().HasMaxLength(32);
+            e.Property(s => s.Purpose).IsRequired().HasMaxLength(32);
+            e.Property(s => s.CorrelationId).IsRequired().HasMaxLength(128);
+            e.Property(s => s.Input).HasColumnType("text");
+            e.Property(s => s.TriggerPayloadJson).HasColumnType("jsonb");
+            e.Property(s => s.Error).HasColumnType("text");
+            e.Property(s => s.SandboxId).HasMaxLength(128);
+            e.Property(s => s.ServiceUrl).HasMaxLength(512);
+            e.Property(s => s.RepositoryFullName).HasMaxLength(256);
+            e.Property(s => s.RepositoryCloneUrl).HasMaxLength(512);
+            e.Property(s => s.RepositoryBaseBranch).HasMaxLength(128);
+            e.Property(s => s.RepositoryCredentialRef).HasMaxLength(128);
+            e.Property(s => s.RepositoryBranch).HasMaxLength(128);
+            e.Property(s => s.PullRequestUrl).HasMaxLength(512);
+            e.Property(s => s.CommitSha).HasMaxLength(64);
             e.HasOne(s => s.Agent).WithMany()
                 .HasForeignKey(s => s.AgentId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(s => s.Workspace).WithMany()
+                .HasForeignKey(s => s.WorkspaceId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<AgentSessionContextEntity>(e =>
         {
             e.HasKey(c => c.Id);
-            e.HasIndex(c => c.AgentId).IsUnique();
+            e.HasIndex(c => c.AgentId);
+            e.HasIndex(c => c.SessionId).IsUnique();
             e.Property(c => c.Summary).HasColumnType("text");
             e.HasOne(c => c.Agent).WithMany()
                 .HasForeignKey(c => c.AgentId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(c => c.Session).WithMany()
+                .HasForeignKey(c => c.SessionId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

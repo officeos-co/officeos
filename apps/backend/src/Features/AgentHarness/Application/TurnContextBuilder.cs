@@ -22,10 +22,10 @@ internal sealed class TurnContextBuilder
         _conversationCompactionService = compactionService;
     }
 
-    public async Task<ConversationHistory> BuildAsync(Guid agentId, string correlationId, string userMessage, CancellationToken ct)
+    public async Task<ConversationHistory> BuildAsync(Guid agentId, Guid sessionId, string correlationId, string userMessage, CancellationToken ct)
     {
         var history = new ConversationHistory();
-        var contextWindow = await _conversationCompactionService.LoadAsync(agentId, correlationId, ct);
+        var contextWindow = await _conversationCompactionService.LoadAsync(agentId, sessionId, correlationId, ct);
         var ordered = contextWindow.Logs
             .Where(l => l.CorrelationId != correlationId)
             .OrderBy(l => l.Time)

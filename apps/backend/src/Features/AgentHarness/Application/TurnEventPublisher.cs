@@ -22,14 +22,15 @@ internal sealed class TurnEventPublisher
         _publisher = publisher;
     }
 
-    public Task PublishTurnStartedAsync(Guid agentId, string correlationId, string userMessage, CancellationToken ct)
-        => _publisher.Publish(new TurnStartedEvent(agentId, correlationId, userMessage), ct);
+    public Task PublishTurnStartedAsync(Guid agentId, Guid sessionId, string correlationId, string userMessage, CancellationToken ct)
+        => _publisher.Publish(new TurnStartedEvent(agentId, sessionId, correlationId, userMessage), ct);
 
-    public Task PublishDiagnosticAsync(Guid agentId, string correlationId, string message, int durationMs, CancellationToken ct)
-        => _publisher.Publish(new TurnDiagnosticEvent(agentId, correlationId, message, durationMs), ct);
+    public Task PublishDiagnosticAsync(Guid agentId, Guid sessionId, string correlationId, string message, int durationMs, CancellationToken ct)
+        => _publisher.Publish(new TurnDiagnosticEvent(agentId, sessionId, correlationId, message, durationMs), ct);
 
     public Task PublishLlmCompletedAsync(
         Guid agentId,
+        Guid sessionId,
         string correlationId,
         string provider,
         string model,
@@ -45,6 +46,7 @@ internal sealed class TurnEventPublisher
         CancellationToken ct)
         => _publisher.Publish(new LlmCallCompletedEvent(
             agentId,
+            sessionId,
             correlationId,
             provider,
             model,
@@ -57,31 +59,33 @@ internal sealed class TurnEventPublisher
             estimatedTokens,
             contextParts), ct);
 
-    public Task PublishMessageOutAsync(Guid agentId, string correlationId, string content, CancellationToken ct)
-        => _publisher.Publish(new MessageOutEvent(agentId, correlationId, content), ct);
+    public Task PublishMessageOutAsync(Guid agentId, Guid sessionId, string correlationId, string content, CancellationToken ct)
+        => _publisher.Publish(new MessageOutEvent(agentId, sessionId, correlationId, content), ct);
 
-    public Task PublishToolCallStartedAsync(Guid agentId, string correlationId, string toolName, string argsJson, CancellationToken ct)
-        => _publisher.Publish(new ToolCallStartedEvent(agentId, correlationId, toolName, argsJson), ct);
+    public Task PublishToolCallStartedAsync(Guid agentId, Guid sessionId, string correlationId, string toolName, string argsJson, CancellationToken ct)
+        => _publisher.Publish(new ToolCallStartedEvent(agentId, sessionId, correlationId, toolName, argsJson), ct);
 
     public Task PublishToolCallCompletedAsync(
         Guid agentId,
+        Guid sessionId,
         string correlationId,
         string toolName,
         bool success,
         string output,
         int durationMs,
         CancellationToken ct)
-        => _publisher.Publish(new ToolCallCompletedEvent(agentId, correlationId, toolName, success, output, durationMs), ct);
+        => _publisher.Publish(new ToolCallCompletedEvent(agentId, sessionId, correlationId, toolName, success, output, durationMs), ct);
 
     public Task PublishTurnCompletedAsync(
         Guid agentId,
+        Guid sessionId,
         string correlationId,
         int durationMs,
         int iterations,
         int toolCallCount,
         CancellationToken ct)
-        => _publisher.Publish(new TurnCompletedEvent(agentId, correlationId, durationMs, iterations, toolCallCount), ct);
+        => _publisher.Publish(new TurnCompletedEvent(agentId, sessionId, correlationId, durationMs, iterations, toolCallCount), ct);
 
-    public Task PublishErrorAsync(Guid agentId, string correlationId, string message, CancellationToken ct)
-        => _publisher.Publish(new AgentErrorOccurredEvent(agentId, correlationId, message), ct);
+    public Task PublishErrorAsync(Guid agentId, Guid sessionId, string correlationId, string message, CancellationToken ct)
+        => _publisher.Publish(new AgentErrorOccurredEvent(agentId, sessionId, correlationId, message), ct);
 }

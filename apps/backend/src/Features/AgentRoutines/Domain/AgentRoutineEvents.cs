@@ -6,6 +6,7 @@ public sealed record RoutineTriggerFiredEvent(
     Guid RoutineId,
     string RoutineName,
     Guid AgentId,
+    Guid SessionId,
     Guid? WorkspaceId,
     Guid TriggerId,
     string TriggerName,

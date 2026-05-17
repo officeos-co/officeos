@@ -22,7 +22,7 @@ internal sealed class TurnLoggingHandler :
     {
         var preview = e.UserMessage.Length > 100 ? e.UserMessage[..100] + "..." : e.UserMessage;
         await _resourceLogService.AppendAsync(
-            ResourceLogRecord.System(e.AgentId, $"Turn started: {preview}", e.CorrelationId, e.OccurredAt), ct);
+            ResourceLogRecord.System(e.AgentId, $"Turn started: {preview}", e.CorrelationId, e.OccurredAt, sessionId: e.SessionId), ct);
     }
 
     public async Task Handle(TurnCompletedEvent e, CancellationToken ct)
@@ -30,14 +30,14 @@ internal sealed class TurnLoggingHandler :
         await _resourceLogService.AppendAsync(
             ResourceLogRecord.System(e.AgentId,
                 $"Turn complete: {e.Iterations} iterations, {e.ToolCallCount} tool calls",
-                e.CorrelationId, e.OccurredAt, new TokenUsage(null, null, e.DurationMs)), ct);
+                e.CorrelationId, e.OccurredAt, new TokenUsage(null, null, e.DurationMs), e.SessionId), ct);
     }
 
     public async Task Handle(TurnDiagnosticEvent e, CancellationToken ct)
     {
         await _resourceLogService.AppendAsync(
             ResourceLogRecord.System(e.AgentId, e.Message,
-                e.CorrelationId, e.OccurredAt, new TokenUsage(null, null, e.DurationMs)), ct);
+                e.CorrelationId, e.OccurredAt, new TokenUsage(null, null, e.DurationMs), e.SessionId), ct);
     }
 
     public async Task Handle(LlmCallCompletedEvent e, CancellationToken ct)
@@ -46,6 +46,7 @@ internal sealed class TurnLoggingHandler :
             new ResourceLogRecord
             {
                 AgentId = e.AgentId,
+                SessionId = e.SessionId,
                 Type = ResourceLogType.ModelCall,
                 Tool = e.Model,
                 Content = $"LLM call complete: {e.Model} ({e.InputTokens ?? 0} in, {e.OutputTokens ?? 0} out)",
@@ -70,7 +71,7 @@ internal sealed class TurnLoggingHandler :
     public async Task Handle(ToolCallStartedEvent e, CancellationToken ct)
     {
         await _resourceLogService.AppendAsync(
-            ResourceLogRecord.ToolCallEntry(e.AgentId, e.ToolName, e.ArgsJson, e.CorrelationId, e.OccurredAt), ct);
+            ResourceLogRecord.ToolCallEntry(e.AgentId, e.ToolName, e.ArgsJson, e.CorrelationId, e.OccurredAt, sessionId: e.SessionId), ct);
     }
 
     public async Task Handle(ToolCallCompletedEvent e, CancellationToken ct)
@@ -79,19 +80,19 @@ internal sealed class TurnLoggingHandler :
         if (!e.Success) content = $"[failed] {content}";
         await _resourceLogService.AppendAsync(
             ResourceLogRecord.ToolResultEntry(e.AgentId, e.ToolName, content,
-                e.CorrelationId, e.OccurredAt, new TokenUsage(null, null, e.DurationMs)), ct);
+                e.CorrelationId, e.OccurredAt, new TokenUsage(null, null, e.DurationMs), sessionId: e.SessionId), ct);
     }
 
     public async Task Handle(AgentErrorOccurredEvent e, CancellationToken ct)
     {
         await _resourceLogService.AppendAsync(
-            ResourceLogRecord.Error(e.AgentId, e.Message, e.CorrelationId, e.OccurredAt), ct);
+            ResourceLogRecord.Error(e.AgentId, e.Message, e.CorrelationId, e.OccurredAt, e.SessionId), ct);
     }
 
     public async Task Handle(MessageOutEvent e, CancellationToken ct)
     {
         await _resourceLogService.AppendAsync(
-            ResourceLogRecord.MessageOut(e.AgentId, e.Content, e.CorrelationId, e.OccurredAt), ct);
+            ResourceLogRecord.MessageOut(e.AgentId, e.Content, e.CorrelationId, e.OccurredAt, e.SessionId), ct);
     }
 
     public async Task Handle(ConversationCompactedEvent e, CancellationToken ct)
@@ -99,6 +100,6 @@ internal sealed class TurnLoggingHandler :
         await _resourceLogService.AppendAsync(
             ResourceLogRecord.System(e.AgentId,
                 $"Conversation compacted through log {e.LastCompactedLogId:N} ({e.PreCompactTokens} -> {e.PostCompactTokens} estimated tokens)",
-                e.CorrelationId, e.OccurredAt), ct);
+                e.CorrelationId, e.OccurredAt, sessionId: e.SessionId), ct);
     }
 }

@@ -13,6 +13,7 @@ public interface IAgentWorkQueueService
 
 public sealed record QueueAgentWorkRequest(
     Guid AgentId,
+    Guid SessionId,
     Guid? WorkspaceId,
     string Content,
     string CorrelationId,

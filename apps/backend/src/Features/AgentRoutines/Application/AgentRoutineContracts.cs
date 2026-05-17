@@ -26,7 +26,13 @@ public sealed record CreateAgentRoutineRequest(
     string Prompt,
     IReadOnlyList<CreateScheduleRoutineTriggerRequest> ScheduleTriggers,
     IReadOnlyList<CreateApiRoutineTriggerRequest> ApiTriggers,
-    IReadOnlyList<CreateGitHubRoutineTriggerRequest> GitHubTriggers);
+    IReadOnlyList<CreateGitHubRoutineTriggerRequest> GitHubTriggers,
+    CreateRoutineRepositoryRequest? Repository = null);
+
+public sealed record CreateRoutineRepositoryRequest(
+    string Repository,
+    string CredentialRef,
+    string? BaseBranch = null);
 
 public sealed record CreateScheduleRoutineTriggerRequest(
     string Name,

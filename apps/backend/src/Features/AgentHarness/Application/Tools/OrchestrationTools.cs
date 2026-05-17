@@ -481,6 +481,7 @@ internal sealed class AgentSpawnTool : IAgentTool
             : $"[{mode}: {name}]\n\n{prompt}";
         await _publisher.Publish(new MessageReceivedEvent(
             _agentId,
+            Guid.NewGuid(),
             message,
             correlationId,
             AgentWorkPurposeKinds.Manual,

@@ -16,10 +16,6 @@ public sealed class AgentRecord
 
     public AgentStatus Status { get; set; } = AgentStatus.Booting;
 
-    public string? PodName { get; set; }
-
-    public string? ServiceUrl { get; set; }
-
     /// <summary>
     /// Optional system prompt the agent boots with. Set at create time and
     /// editable later via PatchAsync.
@@ -55,9 +51,6 @@ public sealed class AgentRecord
     public AgentSessionRecord? ActiveSession { get; init; }
 
     // ── Domain logic ─────────────────────────────────────────────────────────
-
-    /// <summary>Whether this agent has a deployed pod.</summary>
-    public bool HasPod => !string.IsNullOrEmpty(PodName);
 
     // ── Factory ──────────────────────────────────────────────────────────────
 

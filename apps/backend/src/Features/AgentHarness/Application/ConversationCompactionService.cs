@@ -26,11 +26,11 @@ internal sealed class ConversationCompactionService
         _publisher = publisher;
     }
 
-    public async Task<ConversationContextWindow> LoadAsync(Guid agentId, string correlationId, CancellationToken ct)
+    public async Task<ConversationContextWindow> LoadAsync(Guid agentId, Guid sessionId, string correlationId, CancellationToken ct)
     {
-        var context = await _agentSessionContextRepository.GetByAsync(new AgentSessionContextFilter { AgentId = agentId }, ct);
+        var context = await _agentSessionContextRepository.GetByAsync(new AgentSessionContextFilter { SessionId = sessionId }, ct);
         var logs = await _resourceLogRepository.ListAsync(
-            new ResourceLogFilter { AgentId = agentId },
+            new ResourceLogFilter { AgentId = agentId, SessionId = sessionId },
             new ResourceLogListOptions
             {
                 AfterLogId = context?.LastCompactedLogId,
@@ -55,6 +55,7 @@ internal sealed class ConversationCompactionService
         await _agentSessionContextRepository.UpsertAsync(new AgentSessionContextRecord
         {
             AgentId = agentId,
+            SessionId = sessionId,
             Summary = summary,
             LastCompactedLogId = boundary.Id,
             LastCompactedAt = DateTime.UtcNow,
@@ -65,6 +66,7 @@ internal sealed class ConversationCompactionService
 
         await _publisher.Publish(new ConversationCompactedEvent(
             agentId,
+            sessionId,
             correlationId,
             boundary.Id,
             preTokens,

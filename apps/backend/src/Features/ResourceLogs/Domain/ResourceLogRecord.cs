@@ -46,6 +46,7 @@ public sealed class ResourceLogRecord
     public Guid? ParentResourceId { get; init; }
 
     public Guid? AgentId { get; init; }
+    public Guid? SessionId { get; init; }
     public Guid? WorkspaceId { get; init; }
     public AgentRecord? Agent { get; init; }
 
@@ -103,40 +104,40 @@ public sealed class ResourceLogRecord
 
     // ── Factory methods ─────────────────────────────────────────────────────
 
-    public static ResourceLogRecord System(Guid agentId, string content, string? correlationId = null, DateTime? time = null, TokenUsage? usage = null) => new()
+    public static ResourceLogRecord System(Guid agentId, string content, string? correlationId = null, DateTime? time = null, TokenUsage? usage = null, Guid? sessionId = null) => new()
     {
-        AgentId = agentId, Type = ResourceLogType.System, Content = content,
+        AgentId = agentId, SessionId = sessionId, Type = ResourceLogType.System, Content = content,
         CorrelationId = correlationId, Time = time ?? DateTime.UtcNow, Usage = usage ?? TokenUsage.Empty,
     };
 
-    public static ResourceLogRecord MessageIn(Guid agentId, string content, string? correlationId = null, DateTime? time = null) => new()
+    public static ResourceLogRecord MessageIn(Guid agentId, string content, string? correlationId = null, DateTime? time = null, Guid? sessionId = null) => new()
     {
-        AgentId = agentId, Type = ResourceLogType.MessageIn, Content = content,
+        AgentId = agentId, SessionId = sessionId, Type = ResourceLogType.MessageIn, Content = content,
         CorrelationId = correlationId, Time = time ?? DateTime.UtcNow,
     };
 
-    public static ResourceLogRecord MessageOut(Guid agentId, string content, string? correlationId = null, DateTime? time = null) => new()
+    public static ResourceLogRecord MessageOut(Guid agentId, string content, string? correlationId = null, DateTime? time = null, Guid? sessionId = null) => new()
     {
-        AgentId = agentId, Type = ResourceLogType.MessageOut, Content = content,
+        AgentId = agentId, SessionId = sessionId, Type = ResourceLogType.MessageOut, Content = content,
         CorrelationId = correlationId, Time = time ?? DateTime.UtcNow,
     };
 
-    public static ResourceLogRecord ToolCallEntry(Guid agentId, string toolName, string argsJson, string? correlationId = null, DateTime? time = null, string? integration = null) => new()
+    public static ResourceLogRecord ToolCallEntry(Guid agentId, string toolName, string argsJson, string? correlationId = null, DateTime? time = null, string? integration = null, Guid? sessionId = null) => new()
     {
-        AgentId = agentId, Type = ResourceLogType.ToolCall, Tool = toolName, Integration = integration,
+        AgentId = agentId, SessionId = sessionId, Type = ResourceLogType.ToolCall, Tool = toolName, Integration = integration,
         Content = argsJson, CorrelationId = correlationId, Time = time ?? DateTime.UtcNow,
     };
 
-    public static ResourceLogRecord ToolResultEntry(Guid agentId, string toolName, string content, string? correlationId = null, DateTime? time = null, TokenUsage? usage = null, string? integration = null) => new()
+    public static ResourceLogRecord ToolResultEntry(Guid agentId, string toolName, string content, string? correlationId = null, DateTime? time = null, TokenUsage? usage = null, string? integration = null, Guid? sessionId = null) => new()
     {
-        AgentId = agentId, Type = ResourceLogType.ToolResult, Tool = toolName, Integration = integration,
+        AgentId = agentId, SessionId = sessionId, Type = ResourceLogType.ToolResult, Tool = toolName, Integration = integration,
         Content = content, CorrelationId = correlationId, Time = time ?? DateTime.UtcNow,
         Usage = usage ?? TokenUsage.Empty,
     };
 
-    public static ResourceLogRecord Error(Guid agentId, string content, string? correlationId = null, DateTime? time = null) => new()
+    public static ResourceLogRecord Error(Guid agentId, string content, string? correlationId = null, DateTime? time = null, Guid? sessionId = null) => new()
     {
-        AgentId = agentId, Type = ResourceLogType.Error, Content = content,
+        AgentId = agentId, SessionId = sessionId, Type = ResourceLogType.Error, Content = content,
         CorrelationId = correlationId, Time = time ?? DateTime.UtcNow,
     };
 

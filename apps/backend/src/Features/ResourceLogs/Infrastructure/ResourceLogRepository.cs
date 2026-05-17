@@ -36,6 +36,9 @@ internal sealed class ResourceLogRepository : IResourceLogRepository
         if (filter.AgentId.HasValue)
             query = query.Where(l => l.AgentId == filter.AgentId.Value);
 
+        if (filter.SessionId.HasValue)
+            query = query.Where(l => l.SessionId == filter.SessionId.Value);
+
         if (filter.AgentIds is not null)
             query = filter.AgentIds.Count == 0
                 ? query.Where(_ => false)
@@ -191,6 +194,7 @@ internal sealed class ResourceLogRepository : IResourceLogRepository
         existing.WorkPurpose ??= AgentWorkPurposeKinds.Normalize(record.WorkPurpose);
         existing.DefinitionId ??= record.DefinitionId;
         existing.WorkspaceId ??= record.WorkspaceId;
+        existing.SessionId ??= record.SessionId;
         existing.ResourceKind = ResourceLogKinds.Agent;
         existing.ResourceId = record.AgentId;
         existing.AgentId = record.AgentId;
@@ -206,16 +210,16 @@ internal sealed class ResourceLogRepository : IResourceLogRepository
             var runningAgentIds = await _eaosDbContext.ResourceLogs
                 .Where(log => log.Type == ResourceLogType.MessageIn
                     && log.WorkStatus == AgentWorkStatusKinds.Running
-                    && log.AgentId.HasValue)
-                .Select(log => log.AgentId!.Value)
+                    && log.SessionId.HasValue)
+                .Select(log => log.SessionId!.Value)
                 .Distinct()
                 .ToListAsync(ct);
 
             var work = await _eaosDbContext.ResourceLogs
                 .Where(log => log.Type == ResourceLogType.MessageIn
                     && log.WorkStatus == AgentWorkStatusKinds.Queued
-                    && log.AgentId.HasValue
-                    && !runningAgentIds.Contains(log.AgentId.Value))
+                    && log.SessionId.HasValue
+                    && !runningAgentIds.Contains(log.SessionId.Value))
                 .OrderBy(log => log.Time)
                 .ThenBy(log => log.Id)
                 .FirstOrDefaultAsync(ct);
@@ -263,6 +267,7 @@ internal sealed class ResourceLogRepository : IResourceLogRepository
             ParentResourceKind = log.ParentResourceKind,
             ParentResourceId = log.ParentResourceId,
             AgentId = log.AgentId,
+            SessionId = log.SessionId,
             Agent = log.Agent == null
                 ? null
                 : new AgentRecord
@@ -302,6 +307,15 @@ internal sealed class ResourceLogRepository : IResourceLogRepository
         var resourceName = r.ResourceName;
         var parentResourceKind = r.ParentResourceKind;
         var parentResourceId = r.ParentResourceId;
+
+        if (workspaceId is null && r.SessionId.HasValue)
+        {
+            var session = await _eaosDbContext.AgentSessions.AsNoTracking()
+                .Where(s => s.Id == r.SessionId.Value)
+                .Select(s => new { s.WorkspaceId, s.AgentId })
+                .FirstOrDefaultAsync(ct);
+            workspaceId = session?.WorkspaceId;
+        }
 
         if (workspaceId is null && r.AgentId.HasValue)
         {
@@ -344,6 +358,7 @@ internal sealed class ResourceLogRepository : IResourceLogRepository
             ParentResourceKind = parentResourceKind,
             ParentResourceId = parentResourceId,
             AgentId = r.AgentId,
+            SessionId = r.SessionId,
             WorkspaceId = workspaceId,
             Time = r.Time,
             Type = r.Type,
@@ -376,6 +391,7 @@ internal sealed class ResourceLogRepository : IResourceLogRepository
         ParentResourceKind = log.ParentResourceKind,
         ParentResourceId = log.ParentResourceId,
         AgentId = log.AgentId,
+        SessionId = log.SessionId,
         WorkspaceId = log.WorkspaceId,
         Time = log.Time,
         Type = log.Type,

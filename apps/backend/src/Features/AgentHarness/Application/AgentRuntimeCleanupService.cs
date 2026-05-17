@@ -39,14 +39,14 @@ internal sealed class AgentRuntimeCleanupService : BackgroundService
     private async Task TickAsync(CancellationToken ct)
     {
         using var scope = _serviceScopeFactory.CreateScope();
-        var agentRepository = scope.ServiceProvider.GetRequiredService<IAgentRepository>();
+        var agentSessionRepository = scope.ServiceProvider.GetRequiredService<IAgentSessionRepository>();
         var cleaner = scope.ServiceProvider.GetRequiredService<IAgentRuntimeCleaner>();
 
-        var activeAgentIds = (await agentRepository.ListAsync(new AgentFilter(), ct))
-            .Select(agent => agent.Id)
+        var activeSessionIds = (await agentSessionRepository.ListAsync(new AgentSessionFilter { Status = SessionStatus.Running }, 500, ct))
+            .Select(session => session.Id)
             .ToHashSet();
 
-        var result = await cleaner.CleanupUnusedAsync(activeAgentIds, ct);
+        var result = await cleaner.CleanupUnusedAsync(activeSessionIds, ct);
         if (result.Pods == 0 && result.Services == 0 && result.Volumes == 0)
             return;
 

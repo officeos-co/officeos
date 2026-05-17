@@ -170,7 +170,7 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgent
         return new AgentRuntimeCleanupResult(deletedContainers, 0, deletedVolumes);
     }
 
-    internal static string SandboxName(Guid id) => $"eaos-agent-{id.ToString("N")[..8]}";
+    internal static string SandboxName(Guid id) => $"eaos-session-{id.ToString("N")[..12]}";
 
     internal static string ServiceUrl(string sandboxId) => $"http://{sandboxId}:{PodExecutorPort}";
 
@@ -199,7 +199,7 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgent
             {
                 ["app"] = AppLabelValue,
                 ["managed-by"] = ManagedByLabelValue,
-                ["agent-id"] = agentId.ToString(),
+                ["session-id"] = agentId.ToString(),
             },
         };
     }
@@ -357,16 +357,16 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgent
         return Uri.EscapeDataString(filters);
     }
 
-    private static bool TryGetAgentId(JsonElement resource, out Guid agentId)
+    private static bool TryGetSessionId(JsonElement resource, out Guid sessionId)
     {
-        agentId = default;
+        sessionId = default;
         if (!resource.TryGetProperty("Labels", out var labels)
             || labels.ValueKind != JsonValueKind.Object
-            || !labels.TryGetProperty("agent-id", out var agentIdProperty)
-            || agentIdProperty.ValueKind != JsonValueKind.String)
+            || !labels.TryGetProperty("session-id", out var sessionIdProperty)
+            || sessionIdProperty.ValueKind != JsonValueKind.String)
             return false;
 
-        return Guid.TryParse(agentIdProperty.GetString(), out agentId);
+        return Guid.TryParse(sessionIdProperty.GetString(), out sessionId);
     }
 
     private static string? GetDockerName(JsonElement container)
@@ -394,8 +394,8 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgent
         if (!IsRuntimeLabels(resource))
             return false;
 
-        if (TryGetAgentId(resource, out var agentId))
-            return !activeAgentIds.Contains(agentId);
+        if (TryGetSessionId(resource, out var sessionId))
+            return !activeAgentIds.Contains(sessionId);
 
         return IsUnusedSandboxName(name, activeSandboxNames);
     }
@@ -412,7 +412,7 @@ internal sealed class DockerAgentSandbox : IAgentSandbox, IAgentDeployer, IAgent
     }
 
     private static bool IsUnusedSandboxName(string? name, IReadOnlySet<string> activeSandboxNames)
-        => name?.StartsWith("eaos-agent-", StringComparison.Ordinal) == true
+        => name?.StartsWith("eaos-session-", StringComparison.Ordinal) == true
            && activeSandboxNames.All(active => !IsSandboxStorageName(name, active));
 
     private static HashSet<string> ActiveSandboxNames(IReadOnlySet<Guid> activeAgentIds)

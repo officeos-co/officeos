@@ -4,6 +4,7 @@ public sealed class AgentSessionContextEntity
 {
     public Guid Id { get; set; }
     public Guid AgentId { get; set; }
+    public Guid SessionId { get; set; }
     public string Summary { get; set; } = string.Empty;
     public Guid? LastCompactedLogId { get; set; }
     public DateTime? LastCompactedAt { get; set; }
@@ -13,4 +14,5 @@ public sealed class AgentSessionContextEntity
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public AgentEntity? Agent { get; set; }
+    public AgentSessionEntity? Session { get; set; }
 }

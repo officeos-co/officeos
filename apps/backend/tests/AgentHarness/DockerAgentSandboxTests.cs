@@ -20,7 +20,7 @@ public sealed class DockerAgentSandboxTests
 
         Assert.Equal("eaos-agent-runtime", labels.GetProperty("app").GetString());
         Assert.Equal("eaos", labels.GetProperty("managed-by").GetString());
-        Assert.Equal(TestIds.SandboxAgentId.ToString(), labels.GetProperty("agent-id").GetString());
+        Assert.Equal(TestIds.SandboxAgentId.ToString(), labels.GetProperty("session-id").GetString());
     }
 
     [Fact]

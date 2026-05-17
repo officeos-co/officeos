@@ -4,6 +4,7 @@ namespace OffceOs.Features.AgentHarness.Domain;
 
 public sealed record MessageReceivedEvent(
     Guid AgentId,
+    Guid SessionId,
     string Content,
     string CorrelationId,
     string Purpose = AgentWorkPurposeKinds.Manual,

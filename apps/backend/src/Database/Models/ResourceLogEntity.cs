@@ -11,6 +11,7 @@ public sealed class ResourceLogEntity
     public string? ParentResourceKind { get; set; }
     public Guid? ParentResourceId { get; set; }
     public Guid? AgentId { get; set; }
+    public Guid? SessionId { get; set; }
     public Guid? WorkspaceId { get; set; }
     public DateTime Time { get; set; }
     public ResourceLogType Type { get; set; }
@@ -32,5 +33,6 @@ public sealed class ResourceLogEntity
     public DateTime? CompletedAt { get; set; }
     public string? WorkError { get; set; }
     public AgentEntity? Agent { get; set; }
+    public AgentSessionEntity? Session { get; set; }
     public WorkspaceEntity? Workspace { get; set; }
 }

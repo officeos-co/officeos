@@ -60,7 +60,7 @@ public sealed class ControlPlaneResourceCatalogTests
         Assert.Equal("widgets", resources[0].Kind);
     }
 
-    private sealed class FakeControlPlaneResourceCatalogService : IControlPlaneResourceCatalogService
+    private sealed class FakeControlPlaneResourceCatalogService : IControlPlaneResourceService
     {
         private static readonly ControlPlaneResourceDescriptor[] Resources =
         [
@@ -75,9 +75,24 @@ public sealed class ControlPlaneResourceCatalogTests
                 DisplayFields: ["name"]),
         ];
 
-        public IReadOnlyList<ControlPlaneResourceDescriptor> List() => Resources;
+        public IReadOnlyList<ControlPlaneResourceDescriptor> ListDefinitions() => Resources;
 
-        public ControlPlaneResourceDescriptor? Find(string kindOrAlias) =>
+        public ControlPlaneResourceDescriptor? FindDefinition(string kindOrAlias) =>
             Resources.FirstOrDefault(resource => resource.Kind == kindOrAlias || resource.Aliases.Contains(kindOrAlias));
+
+        public Task<IReadOnlyList<ControlPlaneResourceRecord>?> ListAsync(string kindOrAlias, ControlPlaneResourceScope scope, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<ControlPlaneResourceRecord>?>([]);
+
+        public Task<ControlPlaneResourceRecord?> DescribeAsync(string kindOrAlias, string name, ControlPlaneResourceScope scope, CancellationToken ct = default) =>
+            Task.FromResult<ControlPlaneResourceRecord?>(null);
+
+        public Task<ControlPlaneResourceDeleteResult> DeleteAsync(string kindOrAlias, string name, ControlPlaneResourceScope scope, CancellationToken ct = default) =>
+            Task.FromResult(new ControlPlaneResourceDeleteResult(false, true, "unsupported"));
+
+        public Task<ControlPlaneMessageResult> SendMessageAsync(string kindOrAlias, string name, ControlPlaneMessageRequest request, ControlPlaneResourceScope scope, CancellationToken ct = default) =>
+            Task.FromResult(ControlPlaneMessageResult.UnsupportedResult("widgets"));
+
+        public Task<ControlPlaneAuthenticationResult> AuthenticateAsync(string kindOrAlias, string name, ControlPlaneAuthenticationRequest request, ControlPlaneResourceScope scope, CancellationToken ct = default) =>
+            Task.FromResult(ControlPlaneAuthenticationResult.UnsupportedResult("widgets"));
     }
 }

@@ -22,6 +22,7 @@ internal sealed class RoutineLoggingHandler :
             ParentResourceKind = ResourceLogKinds.Agent,
             ParentResourceId = notification.AgentId,
             AgentId = notification.AgentId,
+            SessionId = notification.SessionId,
             WorkspaceId = notification.WorkspaceId,
             Type = ResourceLogType.System,
             Content = $"Routine trigger fired: {notification.TriggerName}",
@@ -34,6 +35,7 @@ internal sealed class RoutineLoggingHandler :
                 notification.TriggerId,
                 notification.TriggerName,
                 notification.TriggerKind,
+                notification.SessionId,
                 notification.PayloadLength,
             }),
         }, ct);

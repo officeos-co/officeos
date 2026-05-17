@@ -9,17 +9,20 @@ namespace OffceOs.Features.AgentHarness.EventHandlers;
 internal sealed class QueueAgentWorkHandler : INotificationHandler<MessageReceivedEvent>
 {
     private readonly IAgentRepository _agentRepository;
+    private readonly IAgentSessionRepository _agentSessionRepository;
     private readonly IAgentWorkQueueService _agentWorkQueueService;
     private readonly IResourceLogWriterService _resourceLogWriterService;
     private readonly IServiceScopeFactory _serviceScopeFactory;
 
     public QueueAgentWorkHandler(
         IAgentRepository agentRepository,
+        IAgentSessionRepository agentSessionRepository,
         IAgentWorkQueueService agentWorkQueueService,
         IResourceLogWriterService resourceLogWriterService,
         IServiceScopeFactory serviceScopeFactory)
     {
         _agentRepository = agentRepository;
+        _agentSessionRepository = agentSessionRepository;
         _agentWorkQueueService = agentWorkQueueService;
         _resourceLogWriterService = resourceLogWriterService;
         _serviceScopeFactory = serviceScopeFactory;
@@ -36,8 +39,24 @@ internal sealed class QueueAgentWorkHandler : INotificationHandler<MessageReceiv
             return;
         }
 
+        var session = await _agentSessionRepository.GetByAsync(new AgentSessionFilter { Id = notification.SessionId }, ct);
+        if (session is null)
+        {
+            session = AgentSessionRecord.CreateRun(
+                agent,
+                notification.Content,
+                AgentWorkPurposeKinds.Normalize(notification.Purpose),
+                AgentWorkPurposeKinds.Normalize(notification.Purpose) == AgentWorkPurposeKinds.Channel
+                    ? AgentSessionSourceKinds.Channel
+                    : AgentSessionSourceKinds.Manual,
+                notification.CorrelationId,
+                definitionId: notification.DefinitionId);
+            await _agentSessionRepository.CreateAsync(session, ct);
+        }
+
         var work = await _agentWorkQueueService.QueueWorkAsync(new QueueAgentWorkRequest(
             notification.AgentId,
+            session.Id,
             agent.WorkspaceId,
             notification.Content,
             notification.CorrelationId,

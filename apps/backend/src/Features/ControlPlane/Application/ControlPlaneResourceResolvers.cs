@@ -181,8 +181,6 @@ internal sealed class AgentControlPlaneResourceResolver : ControlPlaneResourceRe
             [
                 ("prompt", agent.Prompt),
                 ("systemPrompt", SystemPromptComposer.Compose(agent)),
-                ("podName", agent.PodName),
-                ("serviceUrl", agent.ServiceUrl),
                 ("activeDefinitionId", agent.ActiveDefinitionId),
                 ("workspaceId", agent.WorkspaceId),
                 ("personalityFiles", agent.PersonalityFiles.OrderBy(file => file.CompositionOrder).Select(file => new
@@ -211,10 +209,11 @@ internal sealed class AgentControlPlaneResourceResolver : ControlPlaneResourceRe
                 {
                     agent.ActiveSession.Id,
                     status = agent.ActiveSession.Status.ToString(),
-                    agent.ActiveSession.MessageCount,
+                    agent.ActiveSession.Source,
+                    agent.ActiveSession.Purpose,
                     agent.ActiveSession.LastActivityAt,
                     agent.ActiveSession.CreatedAt,
-                    agent.ActiveSession.EndedAt,
+                    agent.ActiveSession.CompletedAt,
                 }),
             ]);
         }

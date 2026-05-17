@@ -16,12 +16,12 @@ namespace OffceOs.Features.Agents.Application;
 internal sealed class AgentService : IAgentService
 {
     private readonly IAgentRepository _agentRepository;
-    private readonly IAgentDeployer _agentDeployer;
     private readonly IProviderService _providerService;
     private readonly IDistributedCache _distributedCache;
     private readonly IAgentPersonalityRepository _agentPersonalityRepository;
     private readonly IPublisher _publisher;
     private readonly AgentChannelBinder _agentChannelBinder;
+    private readonly IAgentSessionRepository _agentSessionRepository;
     private readonly IAgentWorkQueueService _agentWorkQueueService;
     private readonly IResourceLogWriterService _resourceLogWriterService;
     private readonly IIntegrationDefinitionService _integrationDefinitionService;
@@ -31,12 +31,12 @@ internal sealed class AgentService : IAgentService
     private static readonly TimeSpan AgentCacheTtl = TimeSpan.FromSeconds(30);
     public AgentService(
         IAgentRepository repository,
-        IAgentDeployer deployer,
         IProviderService providerService,
         IDistributedCache cache,
         IAgentPersonalityRepository personalityRepo,
         IPublisher publisher,
         AgentChannelBinder channelBinder,
+        IAgentSessionRepository agentSessionRepository,
         IAgentWorkQueueService agentWorkQueueService,
         IResourceLogWriterService resourceLogWriterService,
         IIntegrationDefinitionService integrationDefinitionService,
@@ -44,12 +44,12 @@ internal sealed class AgentService : IAgentService
         AgentDefinitionParser agentDefinitionParser)
     {
         _agentRepository = repository;
-        _agentDeployer = deployer;
         _providerService = providerService;
         _distributedCache = cache;
         _agentPersonalityRepository = personalityRepo;
         _publisher = publisher;
         _agentChannelBinder = channelBinder;
+        _agentSessionRepository = agentSessionRepository;
         _agentWorkQueueService = agentWorkQueueService;
         _resourceLogWriterService = resourceLogWriterService;
         _integrationDefinitionService = integrationDefinitionService;
@@ -65,9 +65,6 @@ internal sealed class AgentService : IAgentService
             return cached;
 
         var records = await _agentRepository.ListAsync(filter, ct);
-        await Task.WhenAll(records
-            .Where(r => !string.IsNullOrEmpty(r.PodName))
-            .Select(r => RefreshStatusAsync(r, ct)));
         await _distributedCache.SetJsonAsync(cacheKey, records, AgentCacheTtl, ct);
         await AgentCacheKeys.TrackListAsync(_distributedCache, cacheKey, ct);
         return records;
@@ -83,8 +80,6 @@ internal sealed class AgentService : IAgentService
         var record = await _agentRepository.GetByAsync(filter, ct);
         if (record is null)
             return null;
-        await RefreshStatusAsync(record, ct);
-
         await _distributedCache.SetJsonAsync(key, record, AgentCacheTtl, ct);
         return record;
     }
@@ -231,7 +226,7 @@ internal sealed class AgentService : IAgentService
             await _resourceLogWriterService
                 .ForAgent(id)
                 .InfoAsync("Agent {AgentName} deleted", record.Name, ct);
-            await _publisher.Publish(new AgentDeletedEvent(id, record.PodName, record.HasPod, record.OwnerId), ct);
+            await _publisher.Publish(new AgentDeletedEvent(id, record.OwnerId), ct);
         }
 
         return deleted;
@@ -250,8 +245,18 @@ internal sealed class AgentService : IAgentService
             throw new InvalidOperationException($"Agent {agentId} not found");
 
         var correlationId = Guid.NewGuid().ToString("N");
+        var session = AgentSessionRecord.CreateRun(
+            agent,
+            content,
+            AgentWorkPurposeKinds.Normalize(runPurpose),
+            AgentSessionSourceKinds.Manual,
+            correlationId,
+            definitionId: definitionId);
+        await _agentSessionRepository.CreateAsync(session, ct);
+
         var record = await _agentWorkQueueService.QueueWorkAsync(new QueueAgentWorkRequest(
             agentId,
+            session.Id,
             agent.WorkspaceId,
             content,
             correlationId,
@@ -259,6 +264,7 @@ internal sealed class AgentService : IAgentService
             definitionId), ct);
         await _publisher.Publish(new MessageReceivedEvent(
             agentId,
+            session.Id,
             content,
             correlationId,
             AgentWorkPurposeKinds.Normalize(runPurpose),
@@ -330,24 +336,4 @@ internal sealed class AgentService : IAgentService
         return auth is not null;
     }
 
-    private async Task RefreshStatusAsync(AgentRecord record, CancellationToken ct)
-    {
-        if (!record.HasPod || string.IsNullOrEmpty(record.PodName)) return;
-        try
-        {
-            var live = await _agentDeployer.GetStatusAsync(record.PodName, ct);
-            var liveStatus = live.ToAgentStatus();
-            if (liveStatus != record.Status)
-            {
-                await _agentRepository.UpdateStatusAsync(new AgentFilter { Id = record.Id }, liveStatus, ct);
-                record.Status = liveStatus;
-            }
-        }
-        catch (Exception ex)
-        {
-            await _resourceLogWriterService
-                .ForAgent(record.Id)
-                .WarningAsync("Failed to refresh agent runtime status: {Message}", ex.Message, ct);
-        }
-    }
 }

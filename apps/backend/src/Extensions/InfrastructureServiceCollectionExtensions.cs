@@ -10,6 +10,8 @@ using OffceOs.Features.Providers.Domain;
 using OffceOs.Features.ResourceLogs.Domain;
 using OffceOs.Common.Infrastructure.Security;
 using OffceOs.Features.AgentRoutines.Infrastructure;
+using OffceOs.Features.AgentHarness.Application;
+using OffceOs.Features.AgentHarness.Infrastructure;
 using OffceOs.Features.Agents.Infrastructure;
 using OffceOs.Features.Browser.Infrastructure;
 using OffceOs.Features.Channels.Infrastructure;
@@ -54,6 +56,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IAgentSessionRepository, AgentSessionRepository>();
         services.AddScoped<IAgentSessionContextRepository, AgentSessionContextRepository>();
         services.AddScoped<IAgentResourceRepository, AgentResourceRepository>();
+        services.AddScoped<ICodeSessionService, GitHubCodeSessionService>();
 
         // Adapters
         services.AddScoped<IChannelGateway, ChannelSidecarGateway>();

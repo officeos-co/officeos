@@ -224,6 +224,13 @@ internal sealed class AgentRoutineRepository : IAgentRoutineRepository
         AgentId = entity.AgentId,
         Name = entity.Name,
         Prompt = entity.Prompt,
+        Repository = string.IsNullOrWhiteSpace(entity.RepositoryFullName)
+            ? null
+            : new AgentRoutineRepositoryConfig(
+                entity.RepositoryFullName,
+                entity.RepositoryCloneUrl ?? GitHubRepositoryRecord.Parse(entity.RepositoryFullName).Url,
+                entity.RepositoryBaseBranch,
+                entity.RepositoryCredentialRef ?? string.Empty),
         Enabled = entity.Enabled,
         LastTriggeredAt = entity.LastTriggeredAt,
         CreatedAt = entity.CreatedAt,
@@ -262,6 +269,10 @@ internal sealed class AgentRoutineRepository : IAgentRoutineRepository
         AgentId = record.AgentId,
         Name = record.Name,
         Prompt = record.Prompt,
+        RepositoryFullName = record.Repository?.FullName,
+        RepositoryCloneUrl = record.Repository?.CloneUrl,
+        RepositoryBaseBranch = record.Repository?.BaseBranch,
+        RepositoryCredentialRef = record.Repository?.CredentialRef,
         Enabled = record.Enabled,
         LastTriggeredAt = record.LastTriggeredAt,
         CreatedAt = record.CreatedAt,
@@ -287,6 +298,10 @@ internal sealed class AgentRoutineRepository : IAgentRoutineRepository
     {
         entity.Name = record.Name;
         entity.Prompt = record.Prompt;
+        entity.RepositoryFullName = record.Repository?.FullName;
+        entity.RepositoryCloneUrl = record.Repository?.CloneUrl;
+        entity.RepositoryBaseBranch = record.Repository?.BaseBranch;
+        entity.RepositoryCredentialRef = record.Repository?.CredentialRef;
         entity.Enabled = record.Enabled;
         entity.LastTriggeredAt = record.LastTriggeredAt;
 

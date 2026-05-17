@@ -35,12 +35,13 @@ internal sealed class ToolExecutionLoop
         _turnEventPublisher = events;
     }
 
-    public async Task<ToolExecutionSession> CreateSessionAsync(AgentRecord agent, string correlationId, Guid? definitionId, CancellationToken ct)
+    public async Task<ToolExecutionSession> CreateSessionAsync(AgentRecord agent, Guid sessionId, string sandboxId, string serviceUrl, string correlationId, Guid? definitionId, CancellationToken ct)
     {
         var integrationListStart = Stopwatch.GetTimestamp();
         var integrations = await _integrationDefinitionService.ListForAgentAsync(agent.Id, agent.OwnerId, ct);
         await _turnEventPublisher.PublishDiagnosticAsync(
             agent.Id,
+            sessionId,
             correlationId,
             $"Tool setup: listed integrations ({integrations.Count})",
             ElapsedMs(integrationListStart),
@@ -50,9 +51,10 @@ internal sealed class ToolExecutionLoop
         var registry = await _toolRegistryFactory.CreateAsync(new ToolRegistryRequest
         {
             Sandbox = _agentSandbox,
-            SandboxId = agent.PodName ?? string.Empty,
-            ServiceUrl = agent.ServiceUrl ?? string.Empty,
+            SandboxId = sandboxId,
+            ServiceUrl = serviceUrl,
             AgentId = agent.Id,
+            SessionId = sessionId,
             WorkspaceId = agent.WorkspaceId,
             CorrelationId = correlationId,
             Integrations = integrations,
@@ -61,6 +63,7 @@ internal sealed class ToolExecutionLoop
         }, ct);
         await _turnEventPublisher.PublishDiagnosticAsync(
             agent.Id,
+            sessionId,
             correlationId,
             $"Tool setup: registry created ({registry.Tools.Count} tools)",
             ElapsedMs(registryStart),
@@ -70,6 +73,7 @@ internal sealed class ToolExecutionLoop
 
     public async Task<ToolLoopResult> ExecuteAsync(
         Guid agentId,
+        Guid sessionId,
         string correlationId,
         IReadOnlyList<ParsedToolCall> toolCalls,
         ToolExecutionSession session,
@@ -85,7 +89,7 @@ internal sealed class ToolExecutionLoop
             try { args = JsonSerializer.Deserialize<JsonElement>(toolCall.Arguments); }
             catch { args = JsonSerializer.SerializeToElement(new { }); }
 
-            await _turnEventPublisher.PublishToolCallStartedAsync(agentId, correlationId, toolCall.Name, toolCall.Arguments, ct);
+            await _turnEventPublisher.PublishToolCallStartedAsync(agentId, sessionId, correlationId, toolCall.Name, toolCall.Arguments, ct);
             totalToolCalls++;
 
             var toolStart = Stopwatch.GetTimestamp();
@@ -101,6 +105,7 @@ internal sealed class ToolExecutionLoop
             {
                 await _turnEventPublisher.PublishToolCallCompletedAsync(
                     agentId,
+                    sessionId,
                     correlationId,
                     toolCall.Name,
                     false,
@@ -124,7 +129,7 @@ internal sealed class ToolExecutionLoop
                     break;
             }
 
-            await _turnEventPublisher.PublishToolCallCompletedAsync(agentId, correlationId, toolCall.Name, result.Success, output, toolDurationMs, ct);
+            await _turnEventPublisher.PublishToolCallCompletedAsync(agentId, sessionId, correlationId, toolCall.Name, result.Success, output, toolDurationMs, ct);
 
             var historyOutput = output.Length > 10000 ? output[..10000] + "\n[truncated]" : output;
             history.Push(new ChatMessage { Role = "tool", Content = historyOutput, ToolCallId = toolCall.Id });

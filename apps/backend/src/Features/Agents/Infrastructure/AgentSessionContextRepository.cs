@@ -16,6 +16,9 @@ internal sealed class AgentSessionContextRepository : IAgentSessionContextReposi
         if (filter.AgentId.HasValue)
             query = query.Where(c => c.AgentId == filter.AgentId.Value);
 
+        if (filter.SessionId.HasValue)
+            query = query.Where(c => c.SessionId == filter.SessionId.Value);
+
         var entity = await query.FirstOrDefaultAsync(ct);
         return entity is null ? null : ToRecord(entity);
     }
@@ -23,7 +26,7 @@ internal sealed class AgentSessionContextRepository : IAgentSessionContextReposi
     public async Task UpsertAsync(AgentSessionContextRecord context, CancellationToken ct = default)
     {
         var entity = await _eaosDbContext.AgentSessionContexts
-            .FirstOrDefaultAsync(c => c.AgentId == context.AgentId, ct);
+            .FirstOrDefaultAsync(c => c.SessionId == context.SessionId, ct);
 
         if (entity is null)
         {
@@ -47,6 +50,7 @@ internal sealed class AgentSessionContextRepository : IAgentSessionContextReposi
     {
         Id = e.Id,
         AgentId = e.AgentId,
+        SessionId = e.SessionId,
         Summary = e.Summary,
         LastCompactedLogId = e.LastCompactedLogId,
         LastCompactedAt = e.LastCompactedAt,
@@ -61,6 +65,7 @@ internal sealed class AgentSessionContextRepository : IAgentSessionContextReposi
     {
         Id = r.Id,
         AgentId = r.AgentId,
+        SessionId = r.SessionId,
         Summary = r.Summary,
         LastCompactedLogId = r.LastCompactedLogId,
         LastCompactedAt = r.LastCompactedAt,

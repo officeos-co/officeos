@@ -32,10 +32,11 @@ public sealed class ResourceLogWorkQueueTests
         using var db = CreateDb();
         var repository = new ResourceLogRepository(db);
         var busyAgentId = Guid.NewGuid();
+        var busySessionId = Guid.NewGuid();
         var freeAgentId = Guid.NewGuid();
         var workspaceId = Guid.NewGuid();
-        await repository.AppendAsync(Work(busyAgentId, workspaceId, DateTime.UtcNow.AddMinutes(-2), AgentWorkStatusKinds.Running));
-        await repository.UpsertQueuedWorkAsync(Work(busyAgentId, workspaceId, DateTime.UtcNow.AddMinutes(-1)));
+        await repository.AppendAsync(Work(busyAgentId, workspaceId, DateTime.UtcNow.AddMinutes(-2), AgentWorkStatusKinds.Running, busySessionId));
+        await repository.UpsertQueuedWorkAsync(Work(busyAgentId, workspaceId, DateTime.UtcNow.AddMinutes(-1), sessionId: busySessionId));
         var freeWork = Work(freeAgentId, workspaceId, DateTime.UtcNow);
         await repository.UpsertQueuedWorkAsync(freeWork);
 
@@ -65,10 +66,12 @@ public sealed class ResourceLogWorkQueueTests
         Guid agentId,
         Guid workspaceId,
         DateTime time,
-        string status = AgentWorkStatusKinds.Queued) => new()
+        string status = AgentWorkStatusKinds.Queued,
+        Guid? sessionId = null) => new()
     {
         Id = Guid.NewGuid(),
         AgentId = agentId,
+        SessionId = sessionId ?? Guid.NewGuid(),
         WorkspaceId = workspaceId,
         ResourceKind = ResourceLogKinds.Agent,
         ResourceId = agentId,

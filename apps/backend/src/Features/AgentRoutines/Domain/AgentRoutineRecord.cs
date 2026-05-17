@@ -7,6 +7,7 @@ public sealed class AgentRoutineRecord
     public Guid AgentId { get; init; }
     public string Name { get; set; } = string.Empty;
     public string Prompt { get; set; } = string.Empty;
+    public AgentRoutineRepositoryConfig? Repository { get; set; }
     public bool Enabled { get; set; }
     public DateTime? LastTriggeredAt { get; set; }
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
@@ -113,6 +114,12 @@ public sealed class AgentRoutineTriggerRecord
         NextRunAt = nextRun;
     }
 }
+
+public sealed record AgentRoutineRepositoryConfig(
+    string FullName,
+    string CloneUrl,
+    string? BaseBranch,
+    string CredentialRef);
 
 public sealed record AgentRoutineWithAgentRecord(
     AgentRoutineRecord Routine,

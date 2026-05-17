@@ -164,7 +164,7 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer, IA
         return new AgentRuntimeCleanupResult(deletedPods, deletedServices, deletedClaims);
     }
 
-    internal static string SandboxName(Guid id) => $"eaos-agent-{id.ToString("N")[..8]}";
+    internal static string SandboxName(Guid id) => $"eaos-session-{id.ToString("N")[..12]}";
 
     internal static string ServiceUrl(string sandboxId, string namespaceName)
         => $"http://{sandboxId}.{namespaceName}.svc.cluster.local:{PodExecutorPort}";
@@ -243,7 +243,7 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer, IA
                 Selector = new Dictionary<string, string>
                 {
                     ["app"] = "eaos-agent-runtime",
-                    ["agent-id"] = agentId.ToString(),
+                    ["session-id"] = agentId.ToString(),
                 },
                 Ports =
                 [
@@ -260,7 +260,7 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer, IA
         {
             ["app"] = AppLabelValue,
             ["managed-by"] = ManagedByLabelValue,
-            ["agent-id"] = agentId.ToString(),
+            ["session-id"] = agentId.ToString(),
         };
 
     internal static string RuntimeLabelSelector()
@@ -391,7 +391,7 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer, IA
             return false;
 
         if (metadata.Labels is not null
-            && metadata.Labels.TryGetValue("agent-id", out var agentIdText)
+            && metadata.Labels.TryGetValue("session-id", out var agentIdText)
             && Guid.TryParse(agentIdText, out var agentId))
             return !activeAgentIds.Contains(agentId);
 
@@ -402,7 +402,7 @@ internal sealed class KubernetesAgentSandbox : IAgentSandbox, IAgentDeployer, IA
         => name == sandboxId || name?.StartsWith($"{sandboxId}-", StringComparison.Ordinal) == true;
 
     private static bool IsUnusedSandboxName(string? name, IReadOnlySet<string> activeSandboxNames)
-        => name?.StartsWith("eaos-agent-", StringComparison.Ordinal) == true
+        => name?.StartsWith("eaos-session-", StringComparison.Ordinal) == true
            && activeSandboxNames.All(active => !IsSandboxStorageName(name, active));
 
     private static bool IsRuntimeLabels(IDictionary<string, string> labels)

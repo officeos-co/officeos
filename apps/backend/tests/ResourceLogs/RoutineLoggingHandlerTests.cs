@@ -15,6 +15,7 @@ public sealed class RoutineLoggingHandlerTests
         var handler = new RoutineLoggingHandler(logs);
         var routineId = Guid.NewGuid();
         var agentId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
         var workspaceId = Guid.NewGuid();
         var triggerId = Guid.NewGuid();
 
@@ -22,6 +23,7 @@ public sealed class RoutineLoggingHandlerTests
             routineId,
             "Daily triage",
             agentId,
+            sessionId,
             workspaceId,
             triggerId,
             "Every minute",
@@ -36,6 +38,7 @@ public sealed class RoutineLoggingHandlerTests
         Assert.Equal(ResourceLogKinds.Agent, log.ParentResourceKind);
         Assert.Equal(agentId, log.ParentResourceId);
         Assert.Equal(agentId, log.AgentId);
+        Assert.Equal(sessionId, log.SessionId);
         Assert.Equal(workspaceId, log.WorkspaceId);
         Assert.Equal("correlation", log.CorrelationId);
         Assert.Contains("Every minute", log.Content);

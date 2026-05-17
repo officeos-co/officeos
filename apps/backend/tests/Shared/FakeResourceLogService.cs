@@ -39,6 +39,7 @@ public sealed class FakeResourceLogService : IResourceLogService, IAgentWorkQueu
         var record = new ResourceLogRecord
         {
             AgentId = request.AgentId,
+            SessionId = request.SessionId,
             WorkspaceId = request.WorkspaceId,
             Type = ResourceLogType.MessageIn,
             Content = request.Content,
@@ -63,15 +64,15 @@ public sealed class FakeResourceLogService : IResourceLogService, IAgentWorkQueu
 
     public Task<ResourceLogRecord?> ClaimNextQueuedWorkAsync(CancellationToken ct = default)
     {
-        var runningAgentIds = _records
-            .Where(record => record.WorkStatus == AgentWorkStatusKinds.Running && record.AgentId.HasValue)
-            .Select(record => record.AgentId!.Value)
+        var runningSessionIds = _records
+            .Where(record => record.WorkStatus == AgentWorkStatusKinds.Running && record.SessionId.HasValue)
+            .Select(record => record.SessionId!.Value)
             .ToHashSet();
         var queued = _records
             .Where(record => record.Type == ResourceLogType.MessageIn
                 && record.WorkStatus == AgentWorkStatusKinds.Queued
-                && record.AgentId.HasValue
-                && !runningAgentIds.Contains(record.AgentId.Value))
+                && record.SessionId.HasValue
+                && !runningSessionIds.Contains(record.SessionId.Value))
             .OrderBy(record => record.Time)
             .FirstOrDefault();
         if (queued is null)
@@ -115,6 +116,7 @@ public sealed class FakeResourceLogService : IResourceLogService, IAgentWorkQueu
         ParentResourceKind = record.ParentResourceKind,
         ParentResourceId = record.ParentResourceId,
         AgentId = record.AgentId,
+        SessionId = record.SessionId,
         WorkspaceId = record.WorkspaceId,
         Agent = record.Agent,
         Time = record.Time,

@@ -1,29 +1,36 @@
-using OffceOs.Features.Agents.Application;
 using OffceOs.Features.ResourceLogs.Application;
 using OffceOs.Features.AgentRoutines.Domain;
 using OffceOs.Common.Infrastructure.Security;
 using OffceOs.Common.Domain.Primitives;
 using OffceOs.Features.Agents.Domain;
+using OffceOs.Features.AgentHarness.Application;
+using OffceOs.Features.AgentHarness.Domain;
 namespace OffceOs.Features.AgentRoutines.Application;
 
 internal sealed class AgentRoutineExecutionService : IAgentRoutineExecutionService
 {
     private readonly IAgentRoutineRepository _agentRoutineRepository;
     private readonly IResourceLogService _resourceLogService;
-    private readonly IAgentService _agentService;
+    private readonly IAgentRepository _agentRepository;
+    private readonly IAgentSessionRepository _agentSessionRepository;
+    private readonly IAgentWorkQueueService _agentWorkQueueService;
     private readonly CredentialProtector _credentialProtector;
     private readonly IPublisher _publisher;
 
     public AgentRoutineExecutionService(
         IAgentRoutineRepository agentRoutineRepository,
         IResourceLogService resourceLogService,
-        IAgentService agentService,
+        IAgentRepository agentRepository,
+        IAgentSessionRepository agentSessionRepository,
+        IAgentWorkQueueService agentWorkQueueService,
         CredentialProtector credentialProtector,
         IPublisher publisher)
     {
         _agentRoutineRepository = agentRoutineRepository;
         _resourceLogService = resourceLogService;
-        _agentService = agentService;
+        _agentRepository = agentRepository;
+        _agentSessionRepository = agentSessionRepository;
+        _agentWorkQueueService = agentWorkQueueService;
         _credentialProtector = credentialProtector;
         _publisher = publisher;
     }
@@ -159,13 +166,49 @@ internal sealed class AgentRoutineExecutionService : IAgentRoutineExecutionServi
         CancellationToken ct)
     {
         var prompt = BuildPrompt(routine, trigger, payloadJson);
-        var work = await _agentService.SendMessageAsync(routine.AgentId, prompt, Guid.Empty, ct, AgentWorkPurposeKinds.Routine);
+        var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = routine.AgentId }, ct)
+            ?? throw new InvalidOperationException("Agent not found.");
+        var correlationId = Guid.NewGuid().ToString("N");
+        var session = AgentSessionRecord.CreateRun(
+            agent,
+            prompt,
+            AgentWorkPurposeKinds.Routine,
+            trigger.Kind == AgentRoutineTriggerKinds.GitHub ? AgentSessionSourceKinds.GitHub : AgentSessionSourceKinds.Routine,
+            correlationId,
+            routine.Id,
+            trigger.Id,
+            agent.ActiveDefinitionId,
+            payloadJson,
+            routine.Repository is null
+                ? null
+                : new AgentSessionRepositoryConfig(
+                    routine.Repository.FullName,
+                    routine.Repository.CloneUrl,
+                    routine.Repository.BaseBranch,
+                    routine.Repository.CredentialRef));
+        await _agentSessionRepository.CreateAsync(session, ct);
+        var work = await _agentWorkQueueService.QueueWorkAsync(new QueueAgentWorkRequest(
+            routine.AgentId,
+            session.Id,
+            agent.WorkspaceId,
+            prompt,
+            correlationId,
+            AgentWorkPurposeKinds.Routine,
+            agent.ActiveDefinitionId), ct);
+        await _publisher.Publish(new MessageReceivedEvent(
+            routine.AgentId,
+            session.Id,
+            prompt,
+            correlationId,
+            AgentWorkPurposeKinds.Routine,
+            agent.ActiveDefinitionId), ct);
         routine.MarkTriggered(now);
         trigger.MarkTriggered(now);
         await _publisher.Publish(new RoutineTriggerFiredEvent(
             routine.Id,
             routine.Name,
             routine.AgentId,
+            session.Id,
             workspaceId ?? work.WorkspaceId,
             trigger.Id,
             trigger.Name,

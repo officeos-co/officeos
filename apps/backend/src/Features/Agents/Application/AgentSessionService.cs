@@ -1,22 +1,18 @@
-using OffceOs.Features.ResourceLogs.Application;
 using OffceOs.Features.Agents.Domain;
-using OffceOs.Features.ResourceLogs.Domain;
+
 namespace OffceOs.Features.Agents.Application;
 
 internal sealed class AgentSessionService : IAgentSessionService
 {
     private readonly IAgentRepository _agentRepository;
     private readonly IAgentSessionRepository _agentSessionRepository;
-    private readonly IResourceLogService _resourceLogService;
 
     public AgentSessionService(
-        IAgentRepository agents,
-        IAgentSessionRepository sessions,
-        IResourceLogService logs)
+        IAgentRepository agentRepository,
+        IAgentSessionRepository agentSessionRepository)
     {
-        _agentRepository = agents;
-        _agentSessionRepository = sessions;
-        _resourceLogService = logs;
+        _agentRepository = agentRepository;
+        _agentSessionRepository = agentSessionRepository;
     }
 
     public async Task<IReadOnlyList<AgentSessionRecord>> ListByAgentAsync(
@@ -29,43 +25,46 @@ internal sealed class AgentSessionService : IAgentSessionService
         return await _agentSessionRepository.ListByAgentAsync(agentId, limit, ct);
     }
 
-    public async Task<AgentSessionRecord?> GetActiveAsync(Guid agentId, Guid ownerId, CancellationToken ct = default)
+    public Task<AgentSessionRecord?> GetForOwnerAsync(Guid sessionId, Guid ownerId, CancellationToken ct = default)
+        => _agentSessionRepository.GetByAsync(new AgentSessionFilter { Id = sessionId, OwnerId = ownerId }, ct);
+
+    public async Task<AgentSessionRecord> CreateRunAsync(CreateAgentSessionRequest request, Guid ownerId, CancellationToken ct = default)
     {
-        await EnsureAgentOwnedAsync(agentId, ownerId, ct);
-        return await _agentSessionRepository.GetByAsync(new AgentSessionFilter { AgentId = agentId, Status = SessionStatus.Active }, ct);
+        var agent = await GetOwnedAgentAsync(request.AgentId, ownerId, ct);
+        var session = AgentSessionRecord.CreateRun(
+            agent,
+            request.Input,
+            request.Purpose,
+            request.Source,
+            request.CorrelationId,
+            request.RoutineId,
+            request.TriggerId,
+            request.DefinitionId,
+            request.TriggerPayloadJson,
+            request.Repository);
+
+        return await _agentSessionRepository.CreateAsync(session, ct);
     }
 
-    public async Task<AgentSessionRecord> CreateAsync(Guid agentId, Guid ownerId, CancellationToken ct = default)
+    public async Task MarkRunningAsync(Guid sessionId, string sandboxId, string serviceUrl, CancellationToken ct = default)
     {
-        var agent = await GetOwnedAgentAsync(agentId, ownerId, ct);
-
-        var active = await _agentSessionRepository.GetByAsync(new AgentSessionFilter { AgentId = agentId, Status = SessionStatus.Active }, ct);
-        if (active is not null)
-        {
-            active.End();
-            await _agentSessionRepository.SaveChangesAsync(ct);
-        }
-
-        var isFirst = await _agentSessionRepository.CountByAgentAsync(agentId, ct) == (active is not null ? 1 : 0);
-        var session = AgentSessionRecord.Create(agentId);
-        await _agentSessionRepository.CreateAsync(session, ct);
-
-        var bootstrapMsg = session.FormatBootstrapMessage(agent.PersonalityFiles, isFirst);
-        await _resourceLogService.AppendAsync(ResourceLogRecord.System(agentId, bootstrapMsg), ct);
-
-        return session;
+        var session = await GetSessionAsync(sessionId, ct);
+        session.MarkRunning(sandboxId, serviceUrl, DateTime.UtcNow);
+        await _agentSessionRepository.SaveAsync(session, ct);
     }
 
-    public async Task<AgentSessionRecord?> EndAsync(Guid agentId, Guid ownerId, CancellationToken ct = default)
+    public async Task MarkCompletedAsync(Guid sessionId, CancellationToken ct = default)
     {
-        await EnsureAgentOwnedAsync(agentId, ownerId, ct);
+        var session = await GetSessionAsync(sessionId, ct);
+        session.MarkCompleted(DateTime.UtcNow);
+        await _agentSessionRepository.SaveAsync(session, ct);
+    }
 
-        var active = await _agentSessionRepository.GetByAsync(new AgentSessionFilter { AgentId = agentId, Status = SessionStatus.Active }, ct);
-        if (active is null) return null;
-
-        active.End();
-        await _agentSessionRepository.SaveChangesAsync(ct);
-        return active;
+    public async Task MarkFailedAsync(Guid sessionId, string error, CancellationToken ct = default)
+    {
+        var session = await GetSessionAsync(sessionId, ct);
+        session.MarkFailed(error, DateTime.UtcNow);
+        await _agentSessionRepository.SaveAsync(session, ct);
     }
 
     private async Task EnsureAgentOwnedAsync(Guid agentId, Guid ownerId, CancellationToken ct)
@@ -79,5 +78,11 @@ internal sealed class AgentSessionService : IAgentSessionService
         if (agent is null)
             throw new InvalidOperationException("Agent not found.");
         return agent;
+    }
+
+    private async Task<AgentSessionRecord> GetSessionAsync(Guid sessionId, CancellationToken ct)
+    {
+        var session = await _agentSessionRepository.GetByAsync(new AgentSessionFilter { Id = sessionId }, ct);
+        return session ?? throw new InvalidOperationException("Session not found.");
     }
 }

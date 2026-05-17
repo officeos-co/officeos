@@ -2,7 +2,6 @@ using OffceOs.Features.AgentDefinitions.Application;
 using OffceOs.Features.AgentRoutines.Application;
 using OffceOs.Features.ResourceLogs.Application;
 using OffceOs.Features.AgentDefinitions.Domain;
-using OffceOs.Features.AgentHarness.Domain;
 using OffceOs.Features.Agents.Domain;
 using OffceOs.Features.Browser.Domain;
 using OffceOs.Features.Channels.Domain;
@@ -24,7 +23,6 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
     private readonly IChannelRepository _channelRepository;
     private readonly IChannelService _channelService;
     private readonly IBrowserService _browserService;
-    private readonly IAgentDeployer _agentDeployer;
     private readonly IResourceLogService _resourceLogService;
     private readonly IAgentDefinitionRepository _agentDefinitionRepository;
     private readonly AgentDefinitionParser _agentDefinitionParser;
@@ -40,7 +38,6 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
         IChannelRepository channelRepository,
         IChannelService channelService,
         IBrowserService browser,
-        IAgentDeployer agentDeployer,
         IResourceLogService resourceLogService,
         IAgentDefinitionRepository agentDefinitionRepository,
         AgentDefinitionParser agentDefinitionParser,
@@ -55,7 +52,6 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
         _channelRepository = channelRepository;
         _channelService = channelService;
         _browserService = browser;
-        _agentDeployer = agentDeployer;
         _resourceLogService = resourceLogService;
         _agentDefinitionRepository = agentDefinitionRepository;
         _agentDefinitionParser = agentDefinitionParser;
@@ -133,7 +129,7 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
         if (resources.Count > 0)
         {
             var resourceSession = await _agentSessionRepository.GetByAsync(
-                new AgentSessionFilter { AgentId = agent.Id, Status = SessionStatus.Active },
+                new AgentSessionFilter { AgentId = agent.Id },
                 ct);
             if (resourceSession is null)
             {
@@ -261,13 +257,6 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
 
     private async Task<AgentStatus> ResolveStatusAsync(AgentRecord agent, CancellationToken ct)
     {
-        if (!agent.HasPod || string.IsNullOrWhiteSpace(agent.PodName))
-            return agent.Status == AgentStatus.Failed ? AgentStatus.Failed : AgentStatus.Booting;
-
-        var runtimeStatus = await GetRuntimeStatusAsync(agent, ct);
-        if (runtimeStatus is AgentStatus.Failed or AgentStatus.Booting or AgentStatus.Restarting)
-            return runtimeStatus;
-
         var runningWork = await _resourceLogService.ListAsync(new ResourceLogQueryRequest(
             WorkspaceId: agent.WorkspaceId,
             AgentId: agent.Id,
@@ -278,26 +267,6 @@ internal sealed class AgentLifecycleService : IAgentLifecycleService
         return runningWork.Items.Count > 0
             ? AgentStatus.Working
             : AgentStatus.Idle;
-    }
-
-    private async Task<AgentStatus> GetRuntimeStatusAsync(AgentRecord agent, CancellationToken ct)
-    {
-        try
-        {
-            var status = (await _agentDeployer.GetStatusAsync(agent.PodName!, ct)).ToAgentStatus();
-            var persistedStatus = status == AgentStatus.Working ? AgentStatus.Idle : status;
-            if (persistedStatus != agent.Status)
-            {
-                await _agentRepository.UpdateStatusAsync(new AgentFilter { Id = agent.Id }, persistedStatus, ct);
-                agent.Status = persistedStatus;
-            }
-
-            return status;
-        }
-        catch
-        {
-            return agent.Status == AgentStatus.Failed ? AgentStatus.Failed : AgentStatus.Booting;
-        }
     }
 
     private async Task EnsureResourceExistsAsync(string resourceType, Guid resourceId, Guid ownerId, Guid workspaceId, CancellationToken ct)

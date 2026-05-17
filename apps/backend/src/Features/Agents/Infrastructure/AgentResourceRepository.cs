@@ -50,8 +50,7 @@ internal sealed class AgentResourceRepository : IAgentResourceRepository
                 session => session.Id,
                 (attachment, session) => new { attachment, session })
             .Where(x => x.attachment.AgentId == agentId
-                && x.attachment.ResourceType == AgentResourceKinds.MemoryStore
-                && x.session.Status == SessionStatus.Active.ToStorageString())
+                && x.attachment.ResourceType == AgentResourceKinds.MemoryStore)
             .OrderByDescending(x => x.attachment.CreatedAt)
             .Select(x => x.attachment)
             .FirstOrDefaultAsync(ct);

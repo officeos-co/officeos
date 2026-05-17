@@ -119,6 +119,7 @@ internal sealed class ToolRegistryRequest
     public required string SandboxId { get; init; }
     public required string ServiceUrl { get; init; }
     public required Guid AgentId { get; init; }
+    public required Guid SessionId { get; init; }
     public required Guid? WorkspaceId { get; init; }
     public required string CorrelationId { get; init; }
     public required IReadOnlyList<IntegrationDefinitionRecord> Integrations { get; init; }
@@ -204,6 +205,7 @@ internal sealed class ToolRegistryFactory
         var toolsetPolicy = new AgentToolsetPermissionPolicy(definitionConfig, _agentHarnessToolPermissionPolicy);
         await _turnEventPublisher.PublishDiagnosticAsync(
             request.AgentId,
+            request.SessionId,
             request.CorrelationId,
             $"Tool setup: agent definition loaded ({definitionConfig.Tools.Count} toolsets)",
             (int)Stopwatch.GetElapsedTime(definitionStart).TotalMilliseconds,

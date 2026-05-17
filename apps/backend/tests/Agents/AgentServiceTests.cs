@@ -41,12 +41,12 @@ public sealed class AgentServiceTests
         var agentDefinitionRepository = new AgentDefinitionRepository(db);
         return new AgentService(
             agentRepository,
-            new FakeAgentDeployer(),
             providerService,
             new InMemoryDistributedCache(),
             new AgentPersonalityRepository(db),
             new NoopPublisher(),
             new AgentChannelBinder(new ChannelRepository(db)),
+            new AgentSessionRepository(db),
             new FakeResourceLogService(),
             new FakeResourceLogWriterService(),
             IntegrationDefinitionServiceTestFactory.CreateService(),

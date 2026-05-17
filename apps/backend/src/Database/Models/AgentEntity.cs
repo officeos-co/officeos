@@ -7,8 +7,6 @@ public sealed class AgentEntity
     public string Provider { get; set; } = string.Empty;
     public string? Model { get; set; }
     public string Status { get; set; } = "booting";
-    public string? PodName { get; set; }
-    public string? ServiceUrl { get; set; }
     public string? Prompt { get; set; }
     public DateTime CreatedAt { get; set; }
     public bool IsDeleted { get; set; }

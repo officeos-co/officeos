@@ -63,7 +63,7 @@ internal sealed class AgentRepository : IAgentRepository
         var channelBindings = await _eaosDbContext.AgentChannelBindings.AsNoTracking()
             .Where(b => b.AgentId == entity.Id).ToListAsync(ct);
         var session = await _eaosDbContext.AgentSessions.AsNoTracking()
-            .Where(s => s.AgentId == entity.Id && s.Status == SessionStatus.Active.ToStorageString())
+            .Where(s => s.AgentId == entity.Id)
             .OrderByDescending(s => s.CreatedAt).FirstOrDefaultAsync(ct);
 
         return ToAgentRecord(entity,
@@ -171,8 +171,34 @@ internal sealed class AgentRepository : IAgentRepository
 
     private static AgentSessionRecord ToAgentSessionRecord(AgentSessionEntity e) => new()
     {
-        Id = e.Id, AgentId = e.AgentId, Status = e.Status.ToSessionStatus(), MessageCount = e.MessageCount,
-        LastActivityAt = e.LastActivityAt, CreatedAt = e.CreatedAt, EndedAt = e.EndedAt,
+        Id = e.Id,
+        AgentId = e.AgentId,
+        OwnerId = e.OwnerId,
+        WorkspaceId = e.WorkspaceId,
+        Source = e.Source,
+        Purpose = e.Purpose,
+        CorrelationId = e.CorrelationId,
+        RoutineId = e.RoutineId,
+        TriggerId = e.TriggerId,
+        DefinitionId = e.DefinitionId,
+        Input = e.Input,
+        TriggerPayloadJson = e.TriggerPayloadJson,
+        Status = e.Status.ToSessionStatus(),
+        Error = e.Error,
+        LastActivityAt = e.LastActivityAt,
+        CreatedAt = e.CreatedAt,
+        StartedAt = e.StartedAt,
+        CompletedAt = e.CompletedAt,
+        SandboxId = e.SandboxId,
+        ServiceUrl = e.ServiceUrl,
+        RepositoryFullName = e.RepositoryFullName,
+        RepositoryCloneUrl = e.RepositoryCloneUrl,
+        RepositoryBaseBranch = e.RepositoryBaseBranch,
+        RepositoryCredentialRef = e.RepositoryCredentialRef,
+        RepositoryBranch = e.RepositoryBranch,
+        PullRequestUrl = e.PullRequestUrl,
+        PullRequestNumber = e.PullRequestNumber,
+        CommitSha = e.CommitSha,
     };
 
     private static AgentChannelBindingRecord ToAgentChannelBindingRecord(AgentChannelBindingEntity e) => new()
@@ -195,8 +221,6 @@ internal sealed class AgentRepository : IAgentRepository
         Provider = e.Provider,
         Model = e.Model,
         Status = e.Status.ToAgentStatus(),
-        PodName = e.PodName,
-        ServiceUrl = e.ServiceUrl,
         Prompt = e.Prompt,
         CreatedAt = e.CreatedAt,
         IsDeleted = e.IsDeleted,
@@ -217,8 +241,6 @@ internal sealed class AgentRepository : IAgentRepository
         Provider = r.Provider,
         Model = r.Model,
         Status = r.Status.ToStorageString(),
-        PodName = r.PodName,
-        ServiceUrl = r.ServiceUrl,
         Prompt = r.Prompt,
         CreatedAt = r.CreatedAt,
         IsDeleted = r.IsDeleted,
@@ -234,8 +256,6 @@ internal sealed class AgentRepository : IAgentRepository
         e.Provider = r.Provider;
         e.Model = r.Model;
         e.Status = r.Status.ToStorageString();
-        e.PodName = r.PodName;
-        e.ServiceUrl = r.ServiceUrl;
         e.Prompt = r.Prompt;
         e.IsDeleted = r.IsDeleted;
         e.OwnerId = r.OwnerId;

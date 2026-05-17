@@ -13,6 +13,7 @@ internal sealed class AgentWorkQueueService : IAgentWorkQueueService
         => _resourceLogRepository.UpsertQueuedWorkAsync(new ResourceLogRecord
         {
             AgentId = request.AgentId,
+            SessionId = request.SessionId,
             WorkspaceId = request.WorkspaceId,
             ResourceKind = ResourceLogKinds.Agent,
             ResourceId = request.AgentId,

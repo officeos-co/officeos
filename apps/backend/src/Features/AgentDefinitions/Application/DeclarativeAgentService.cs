@@ -716,7 +716,7 @@ internal sealed class DeclarativeAgentService : IDeclarativeAgentService
 
     private async Task EnsureAgentResourcesAsync(Guid agentId, DeclarativeAgentSpecItem spec, Guid workspaceId, CancellationToken ct)
     {
-        var session = await _agentSessionRepository.GetByAsync(new AgentSessionFilter { AgentId = agentId, Status = SessionStatus.Active }, ct);
+        var session = await _agentSessionRepository.GetByAsync(new AgentSessionFilter { AgentId = agentId }, ct);
         if (session is null)
         {
             session = AgentSessionRecord.Create(agentId);

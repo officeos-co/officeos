@@ -36,6 +36,18 @@ internal sealed class AgentRoutineService : IAgentRoutineService
         await EnsureAgentOwnedAsync(request.AgentId, workspaceId, ct);
 
         var routine = AgentRoutineRecord.Create(request.AgentId, request.Name, request.Prompt);
+        if (request.Repository is not null)
+        {
+            if (string.IsNullOrWhiteSpace(request.Repository.CredentialRef))
+                throw new InvalidOperationException("Routine repository credential_ref is required.");
+            var repository = GitHubRepositoryRecord.Parse(request.Repository.Repository);
+            routine.Repository = new AgentRoutineRepositoryConfig(
+                repository.FullName,
+                repository.Url,
+                string.IsNullOrWhiteSpace(request.Repository.BaseBranch) ? null : request.Repository.BaseBranch.Trim(),
+                request.Repository.CredentialRef.Trim().ToLowerInvariant());
+        }
+
         var generatedSecrets = new List<AgentRoutineGeneratedSecretResult>();
         foreach (var trigger in request.ScheduleTriggers)
             routine.Triggers.Add(AgentRoutineTriggerRecord.CreateSchedule(routine.Id, trigger.Name, trigger.Expression, NextOccurrence(trigger.Expression, DateTime.UtcNow)));

@@ -4,6 +4,7 @@ namespace OffceOs.Features.AgentHarness.Domain;
 
 public sealed record LlmCallCompletedEvent(
     Guid AgentId,
+    Guid SessionId,
     string CorrelationId,
     string Provider,
     string Model,

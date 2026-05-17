@@ -8,6 +8,7 @@ public sealed record ResourceLogFilter
     public string? ResourceName { get; init; }
     public string? Severity { get; init; }
     public Guid? AgentId { get; init; }
+    public Guid? SessionId { get; init; }
     public IReadOnlyList<Guid>? AgentIds { get; init; }
     public Guid? OwnerId { get; init; }
     public Guid? WorkspaceId { get; init; }

@@ -157,7 +157,14 @@ public sealed class AgentRoutineEndToEndTests
         var keyRingPath = Path.Combine(Path.GetTempPath(), $"eaos-routine-test-keys-{Guid.NewGuid():N}");
         var credentialProtector = new CredentialProtector(DataProtectionProvider.Create(new DirectoryInfo(keyRingPath)));
         var service = new AgentRoutineService(routineRepository, agentRepository, credentialProtector);
-        var execution = new AgentRoutineExecutionService(routineRepository, logs, agents, credentialProtector, new NoopPublisher());
+        var execution = new AgentRoutineExecutionService(
+            routineRepository,
+            logs,
+            agentRepository,
+            new AgentSessionRepository(db),
+            agents,
+            credentialProtector,
+            new NoopPublisher());
         return (service, execution, agents);
     }
 
@@ -192,7 +199,6 @@ public sealed class AgentRoutineEndToEndTests
             Provider = "openai",
             Model = "gpt-4o-mini",
             Status = AgentStatus.Idle.ToStorageString(),
-            PodName = "agent-pod",
             OwnerId = ownerId,
             WorkspaceId = workspaceId,
             CreatedAt = DateTime.UtcNow,
@@ -243,7 +249,7 @@ public sealed class AgentRoutineEndToEndTests
             Task.CompletedTask;
     }
 
-    private sealed class RecordingAgentService : IAgentService
+    private sealed class RecordingAgentService : IAgentService, IAgentWorkQueueService
     {
         public List<(Guid AgentId, string Content, Guid UserId, string? Purpose)> Messages { get; } = [];
 
@@ -276,5 +282,23 @@ public sealed class AgentRoutineEndToEndTests
             Messages.Add((agentId, content, userId, runPurpose));
             return Task.FromResult(ResourceLogRecord.MessageIn(agentId, content));
         }
+
+        public Task<ResourceLogRecord> QueueWorkAsync(QueueAgentWorkRequest request, CancellationToken ct = default)
+        {
+            Messages.Add((request.AgentId, request.Content, Guid.Empty, request.Purpose));
+            return Task.FromResult(ResourceLogRecord.MessageIn(request.AgentId, request.Content, request.CorrelationId, sessionId: request.SessionId));
+        }
+
+        public Task<ResourceLogRecord?> StartWorkAsync(Guid workLogId, CancellationToken ct = default) =>
+            Task.FromResult<ResourceLogRecord?>(null);
+
+        public Task<ResourceLogRecord?> ClaimNextQueuedWorkAsync(CancellationToken ct = default) =>
+            Task.FromResult<ResourceLogRecord?>(null);
+
+        public Task CompleteWorkAsync(Guid workLogId, CancellationToken ct = default) =>
+            Task.CompletedTask;
+
+        public Task FailWorkAsync(Guid workLogId, string error, CancellationToken ct = default) =>
+            Task.CompletedTask;
     }
 }
