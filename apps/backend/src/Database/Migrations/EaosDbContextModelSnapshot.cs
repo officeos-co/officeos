@@ -535,10 +535,6 @@ namespace OffceOs.Database.Migrations
                     b.Property<Guid>("AgentId")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("CommitSha")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -566,48 +562,13 @@ namespace OffceOs.Database.Migrations
                     b.Property<Guid?>("OwnerId")
                         .HasColumnType("uuid");
 
-                    b.Property<int?>("PullRequestNumber")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("PullRequestUrl")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
-
                     b.Property<string>("Purpose")
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
-                    b.Property<string>("RepositoryBaseBranch")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<string>("RepositoryBranch")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<string>("RepositoryCloneUrl")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
-
-                    b.Property<string>("RepositoryCredentialRef")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<string>("RepositoryFullName")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
                     b.Property<Guid?>("RoutineId")
                         .HasColumnType("uuid");
-
-                    b.Property<string>("SandboxId")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<string>("ServiceUrl")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
 
                     b.Property<string>("Source")
                         .IsRequired()
@@ -644,6 +605,86 @@ namespace OffceOs.Database.Migrations
                     b.HasIndex("WorkspaceId", "Status");
 
                     b.ToTable("AgentSessions");
+                });
+
+            modelBuilder.Entity("OffceOs.Database.Models.AgentSessionPullRequestEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Branch")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("CommitSha")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("Number")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SessionId")
+                        .IsUnique();
+
+                    b.ToTable("AgentSessionPullRequests", (string)null);
+                });
+
+            modelBuilder.Entity("OffceOs.Database.Models.AgentSessionRepositoryEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BaseBranch")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("Branch")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("CloneUrl")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CredentialRef")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SessionId")
+                        .IsUnique();
+
+                    b.ToTable("AgentSessionRepositories", (string)null);
                 });
 
             modelBuilder.Entity("OffceOs.Database.Models.AgentSessionResourceAttachmentEntity", b =>
@@ -685,6 +726,36 @@ namespace OffceOs.Database.Migrations
                         .IsUnique();
 
                     b.ToTable("AgentSessionResourceAttachments");
+                });
+
+            modelBuilder.Entity("OffceOs.Database.Models.AgentSessionRuntimeEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SandboxId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("ServiceUrl")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SessionId")
+                        .IsUnique();
+
+                    b.ToTable("AgentSessionRuntimes", (string)null);
                 });
 
             modelBuilder.Entity("OffceOs.Database.Models.BrowserResourceEntity", b =>
@@ -1688,6 +1759,28 @@ namespace OffceOs.Database.Migrations
                     b.Navigation("Workspace");
                 });
 
+            modelBuilder.Entity("OffceOs.Database.Models.AgentSessionPullRequestEntity", b =>
+                {
+                    b.HasOne("OffceOs.Database.Models.AgentSessionEntity", "Session")
+                        .WithOne("PullRequest")
+                        .HasForeignKey("OffceOs.Database.Models.AgentSessionPullRequestEntity", "SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Session");
+                });
+
+            modelBuilder.Entity("OffceOs.Database.Models.AgentSessionRepositoryEntity", b =>
+                {
+                    b.HasOne("OffceOs.Database.Models.AgentSessionEntity", "Session")
+                        .WithOne("Repository")
+                        .HasForeignKey("OffceOs.Database.Models.AgentSessionRepositoryEntity", "SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Session");
+                });
+
             modelBuilder.Entity("OffceOs.Database.Models.AgentSessionResourceAttachmentEntity", b =>
                 {
                     b.HasOne("OffceOs.Database.Models.AgentEntity", "Agent")
@@ -1703,6 +1796,17 @@ namespace OffceOs.Database.Migrations
                         .IsRequired();
 
                     b.Navigation("Agent");
+
+                    b.Navigation("Session");
+                });
+
+            modelBuilder.Entity("OffceOs.Database.Models.AgentSessionRuntimeEntity", b =>
+                {
+                    b.HasOne("OffceOs.Database.Models.AgentSessionEntity", "Session")
+                        .WithOne("Runtime")
+                        .HasForeignKey("OffceOs.Database.Models.AgentSessionRuntimeEntity", "SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Session");
                 });
@@ -1920,6 +2024,15 @@ namespace OffceOs.Database.Migrations
             modelBuilder.Entity("OffceOs.Database.Models.AgentRoutineEntity", b =>
                 {
                     b.Navigation("Triggers");
+                });
+
+            modelBuilder.Entity("OffceOs.Database.Models.AgentSessionEntity", b =>
+                {
+                    b.Navigation("PullRequest");
+
+                    b.Navigation("Repository");
+
+                    b.Navigation("Runtime");
                 });
 #pragma warning restore 612, 618
         }

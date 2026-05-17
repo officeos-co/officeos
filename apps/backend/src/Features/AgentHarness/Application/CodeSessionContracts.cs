@@ -10,6 +10,6 @@ public interface ICodeSessionService
 
 public sealed record CodeSessionFinalizeResult(
     string Branch,
-    string? CommitSha,
+    string CommitSha,
     string PullRequestUrl,
     int? PullRequestNumber);

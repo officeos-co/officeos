@@ -228,8 +228,8 @@ internal sealed class AgentHarnessService : IAgentHarnessService
             var session = await _agentSessionRepository.GetByAsync(new AgentSessionFilter { Id = sessionId }, ct);
             if (session is not null)
             {
-                if (!string.IsNullOrWhiteSpace(session.SandboxId))
-                    await _agentSandbox.TerminateAsync(session.SandboxId, ct);
+                if (!string.IsNullOrWhiteSpace(session.Runtime?.SandboxId))
+                    await _agentSandbox.TerminateAsync(session.Runtime.SandboxId, ct);
                 session.MarkFailed(error, DateTime.UtcNow);
                 await _agentSessionRepository.SaveAsync(session, ct);
             }

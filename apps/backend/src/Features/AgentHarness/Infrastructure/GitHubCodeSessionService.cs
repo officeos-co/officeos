@@ -37,11 +37,11 @@ internal sealed class GitHubCodeSessionService : ICodeSessionService
 
         var token = await GetGitHubTokenAsync(session, ct);
         var repository = ResolveRepository(session);
-        var baseBranch = string.IsNullOrWhiteSpace(session.RepositoryBaseBranch)
+        var baseBranch = string.IsNullOrWhiteSpace(session.Repository?.BaseBranch)
             ? await GetDefaultBranchAsync(repository.FullName, token, ct)
-            : session.RepositoryBaseBranch.Trim();
+            : session.Repository.BaseBranch.Trim();
         var branch = $"officeos/session-{session.Id.ToString("N")[..12]}";
-        session.RepositoryBaseBranch = baseBranch;
+        session.Repository = session.Repository! with { BaseBranch = baseBranch };
 
         await ExecuteRequiredAsync(sandboxId, serviceUrl, $"rm -rf {RepoPath}", TimeSpan.FromSeconds(60), ct);
         await ExecuteRequiredAsync(
@@ -57,7 +57,7 @@ internal sealed class GitHubCodeSessionService : ICodeSessionService
             TimeSpan.FromSeconds(60),
             ct);
 
-        session.RepositoryBranch = branch;
+        session.Repository = session.Repository with { Branch = branch };
         await _agentSessionRepository.SaveAsync(session, ct);
     }
 
@@ -68,9 +68,9 @@ internal sealed class GitHubCodeSessionService : ICodeSessionService
 
         var token = await GetGitHubTokenAsync(session, ct);
         var repository = ResolveRepository(session);
-        var branch = string.IsNullOrWhiteSpace(session.RepositoryBranch)
+        var branch = string.IsNullOrWhiteSpace(session.Repository?.Branch)
             ? $"officeos/session-{session.Id.ToString("N")[..12]}"
-            : session.RepositoryBranch;
+            : session.Repository.Branch;
         var status = await ExecuteRequiredAsync(
             sandboxId,
             serviceUrl,
@@ -103,14 +103,14 @@ internal sealed class GitHubCodeSessionService : ICodeSessionService
     {
         if (session.WorkspaceId is null)
             throw new InvalidOperationException("GitHub code sessions require a workspace.");
-        if (string.IsNullOrWhiteSpace(session.RepositoryCredentialRef))
+        if (string.IsNullOrWhiteSpace(session.Repository?.CredentialRef))
             throw new InvalidOperationException("GitHub code sessions require a repository credential ref.");
 
-        var credential = await _agentRoutineCredentialRepository.GetByNameAsync(session.WorkspaceId.Value, session.RepositoryCredentialRef, ct)
-            ?? throw new InvalidOperationException($"GitHub credential '{session.RepositoryCredentialRef}' was not found.");
+        var credential = await _agentRoutineCredentialRepository.GetByNameAsync(session.WorkspaceId.Value, session.Repository.CredentialRef, ct)
+            ?? throw new InvalidOperationException($"GitHub credential '{session.Repository.CredentialRef}' was not found.");
         var credentials = _credentialProtector.Unprotect(credential.EncryptedSecret);
         if (!credentials.TryGetValue("GITHUB_PERSONAL_ACCESS_TOKEN", out var token) || string.IsNullOrWhiteSpace(token))
-            throw new InvalidOperationException($"GitHub credential '{session.RepositoryCredentialRef}' has no GitHub token.");
+            throw new InvalidOperationException($"GitHub credential '{session.Repository.CredentialRef}' has no GitHub token.");
 
         await _agentRoutineCredentialRepository.MarkUsedAsync(credential.Id, DateTime.UtcNow, ct);
         return token;
@@ -158,7 +158,7 @@ internal sealed class GitHubCodeSessionService : ICodeSessionService
         {
             title = BuildPullRequestTitle(session),
             head = branch,
-            @base = string.IsNullOrWhiteSpace(session.RepositoryBaseBranch) ? "main" : session.RepositoryBaseBranch,
+            @base = string.IsNullOrWhiteSpace(session.Repository?.BaseBranch) ? "main" : session.Repository.BaseBranch,
             body = BuildPullRequestBody(session, branch),
             draft = true,
         });
@@ -180,13 +180,16 @@ internal sealed class GitHubCodeSessionService : ICodeSessionService
 
     private static GitHubSessionRepository ResolveRepository(AgentSessionRecord session)
     {
-        if (!string.IsNullOrWhiteSpace(session.RepositoryFullName))
+        if (session.Repository is null)
+            throw new InvalidOperationException("GitHub code sessions require repository configuration.");
+
+        if (!string.IsNullOrWhiteSpace(session.Repository.FullName))
         {
-            var parsed = GitHubRepositoryRecord.Parse(session.RepositoryFullName);
+            var parsed = GitHubRepositoryRecord.Parse(session.Repository.FullName);
             return new GitHubSessionRepository(parsed.FullName, parsed.Url);
         }
 
-        var fromClone = GitHubRepositoryRecord.Parse(session.RepositoryCloneUrl ?? string.Empty);
+        var fromClone = GitHubRepositoryRecord.Parse(session.Repository.CloneUrl);
         return new GitHubSessionRepository(fromClone.FullName, fromClone.Url);
     }
 

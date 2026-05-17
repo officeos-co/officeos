@@ -24,22 +24,14 @@ public sealed class AgentSessionRecord
     public DateTime? StartedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
 
-    public string? SandboxId { get; set; }
-    public string? ServiceUrl { get; set; }
-
-    public string? RepositoryFullName { get; init; }
-    public string? RepositoryCloneUrl { get; init; }
-    public string? RepositoryBaseBranch { get; set; }
-    public string? RepositoryCredentialRef { get; init; }
-    public string? RepositoryBranch { get; set; }
-    public string? PullRequestUrl { get; set; }
-    public int? PullRequestNumber { get; set; }
-    public string? CommitSha { get; set; }
+    public AgentSessionRuntimeRecord? Runtime { get; set; }
+    public AgentSessionRepositoryRecord? Repository { get; set; }
+    public AgentSessionPullRequestRecord? PullRequest { get; set; }
 
     public AgentRecord? Agent { get; init; }
 
     public bool IsTerminal => Status is SessionStatus.Completed or SessionStatus.Failed or SessionStatus.Canceled;
-    public bool HasRepository => !string.IsNullOrWhiteSpace(RepositoryCloneUrl) || !string.IsNullOrWhiteSpace(RepositoryFullName);
+    public bool HasRepository => Repository is not null;
 
     public static AgentSessionRecord CreateRun(
         AgentRecord agent,
@@ -64,10 +56,16 @@ public sealed class AgentSessionRecord
         TriggerId = triggerId,
         DefinitionId = definitionId,
         TriggerPayloadJson = string.IsNullOrWhiteSpace(triggerPayloadJson) ? null : triggerPayloadJson,
-        RepositoryFullName = repository?.FullName,
-        RepositoryCloneUrl = repository?.CloneUrl,
-        RepositoryBaseBranch = repository?.BaseBranch,
-        RepositoryCredentialRef = repository?.CredentialRef,
+        Repository = repository is null
+            ? null
+            : new AgentSessionRepositoryRecord(
+                Guid.NewGuid(),
+                repository.FullName,
+                repository.CloneUrl,
+                repository.BaseBranch,
+                repository.CredentialRef,
+                null,
+                DateTime.UtcNow),
     };
 
     public static AgentSessionRecord Create(Guid agentId) => new()
@@ -82,8 +80,7 @@ public sealed class AgentSessionRecord
     public void MarkRunning(string sandboxId, string serviceUrl, DateTime now)
     {
         Status = SessionStatus.Running;
-        SandboxId = sandboxId;
-        ServiceUrl = serviceUrl;
+        Runtime = new AgentSessionRuntimeRecord(Guid.NewGuid(), sandboxId, serviceUrl, now);
         StartedAt ??= now;
         RecordActivity(now);
     }
@@ -105,10 +102,9 @@ public sealed class AgentSessionRecord
 
     public void RecordGitHubArtifact(string branch, string? commitSha, string pullRequestUrl, int? pullRequestNumber)
     {
-        RepositoryBranch = branch;
-        CommitSha = commitSha;
-        PullRequestUrl = pullRequestUrl;
-        PullRequestNumber = pullRequestNumber;
+        if (Repository is not null)
+            Repository = Repository with { Branch = branch };
+        PullRequest = new AgentSessionPullRequestRecord(Guid.NewGuid(), pullRequestUrl, pullRequestNumber, branch, commitSha ?? string.Empty, DateTime.UtcNow);
     }
 
     public void RecordActivity(DateTime at)
@@ -122,3 +118,26 @@ public sealed record AgentSessionRepositoryConfig(
     string CloneUrl,
     string? BaseBranch,
     string? CredentialRef);
+
+public sealed record AgentSessionRuntimeRecord(
+    Guid Id,
+    string SandboxId,
+    string ServiceUrl,
+    DateTime CreatedAt);
+
+public sealed record AgentSessionRepositoryRecord(
+    Guid Id,
+    string FullName,
+    string CloneUrl,
+    string? BaseBranch,
+    string? CredentialRef,
+    string? Branch,
+    DateTime CreatedAt);
+
+public sealed record AgentSessionPullRequestRecord(
+    Guid Id,
+    string Url,
+    int? Number,
+    string Branch,
+    string CommitSha,
+    DateTime CreatedAt);

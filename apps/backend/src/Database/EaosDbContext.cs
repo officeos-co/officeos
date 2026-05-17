@@ -30,6 +30,9 @@ public sealed class EaosDbContext : DbContext
     public DbSet<AgentRoutineTriggerEntity> AgentRoutineTriggers => Set<AgentRoutineTriggerEntity>();
     public DbSet<AgentRoutinePollCursorEntity> AgentRoutinePollCursors => Set<AgentRoutinePollCursorEntity>();
     public DbSet<AgentSessionEntity> AgentSessions => Set<AgentSessionEntity>();
+    public DbSet<AgentSessionRuntimeEntity> AgentSessionRuntimes => Set<AgentSessionRuntimeEntity>();
+    public DbSet<AgentSessionRepositoryEntity> AgentSessionRepositories => Set<AgentSessionRepositoryEntity>();
+    public DbSet<AgentSessionPullRequestEntity> AgentSessionPullRequests => Set<AgentSessionPullRequestEntity>();
     public DbSet<AgentSessionContextEntity> AgentSessionContexts => Set<AgentSessionContextEntity>();
     public DbSet<BrowserResourceEntity> BrowserResources => Set<BrowserResourceEntity>();
     public DbSet<MemoryStoreEntity> MemoryStores => Set<MemoryStoreEntity>();
@@ -303,20 +306,51 @@ public sealed class EaosDbContext : DbContext
             e.Property(s => s.Input).HasColumnType("text");
             e.Property(s => s.TriggerPayloadJson).HasColumnType("jsonb");
             e.Property(s => s.Error).HasColumnType("text");
-            e.Property(s => s.SandboxId).HasMaxLength(128);
-            e.Property(s => s.ServiceUrl).HasMaxLength(512);
-            e.Property(s => s.RepositoryFullName).HasMaxLength(256);
-            e.Property(s => s.RepositoryCloneUrl).HasMaxLength(512);
-            e.Property(s => s.RepositoryBaseBranch).HasMaxLength(128);
-            e.Property(s => s.RepositoryCredentialRef).HasMaxLength(128);
-            e.Property(s => s.RepositoryBranch).HasMaxLength(128);
-            e.Property(s => s.PullRequestUrl).HasMaxLength(512);
-            e.Property(s => s.CommitSha).HasMaxLength(64);
             e.HasOne(s => s.Agent).WithMany()
                 .HasForeignKey(s => s.AgentId)
                 .OnDelete(DeleteBehavior.Cascade);
             e.HasOne(s => s.Workspace).WithMany()
                 .HasForeignKey(s => s.WorkspaceId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AgentSessionRuntimeEntity>(e =>
+        {
+            e.ToTable("AgentSessionRuntimes");
+            e.HasKey(r => r.Id);
+            e.HasIndex(r => r.SessionId).IsUnique();
+            e.Property(r => r.SandboxId).IsRequired().HasMaxLength(128);
+            e.Property(r => r.ServiceUrl).IsRequired().HasMaxLength(512);
+            e.HasOne(r => r.Session).WithOne(s => s.Runtime)
+                .HasForeignKey<AgentSessionRuntimeEntity>(r => r.SessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AgentSessionRepositoryEntity>(e =>
+        {
+            e.ToTable("AgentSessionRepositories");
+            e.HasKey(r => r.Id);
+            e.HasIndex(r => r.SessionId).IsUnique();
+            e.Property(r => r.FullName).IsRequired().HasMaxLength(256);
+            e.Property(r => r.CloneUrl).IsRequired().HasMaxLength(512);
+            e.Property(r => r.BaseBranch).HasMaxLength(128);
+            e.Property(r => r.CredentialRef).HasMaxLength(128);
+            e.Property(r => r.Branch).HasMaxLength(128);
+            e.HasOne(r => r.Session).WithOne(s => s.Repository)
+                .HasForeignKey<AgentSessionRepositoryEntity>(r => r.SessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AgentSessionPullRequestEntity>(e =>
+        {
+            e.ToTable("AgentSessionPullRequests");
+            e.HasKey(p => p.Id);
+            e.HasIndex(p => p.SessionId).IsUnique();
+            e.Property(p => p.Url).IsRequired().HasMaxLength(512);
+            e.Property(p => p.Branch).IsRequired().HasMaxLength(128);
+            e.Property(p => p.CommitSha).IsRequired().HasMaxLength(64);
+            e.HasOne(p => p.Session).WithOne(s => s.PullRequest)
+                .HasForeignKey<AgentSessionPullRequestEntity>(p => p.SessionId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

@@ -12,7 +12,7 @@ internal sealed class AgentSessionRepository : IAgentSessionRepository
 
     public async Task<AgentSessionRecord?> GetByAsync(AgentSessionFilter filter, CancellationToken ct = default)
     {
-        var entity = await ApplyFilter(_eaosDbContext.AgentSessions.AsQueryable(), filter)
+        var entity = await ApplyFilter(SessionGraph(_eaosDbContext.AgentSessions), filter)
             .OrderByDescending(s => s.CreatedAt)
             .FirstOrDefaultAsync(ct);
         if (entity is null) return null;
@@ -23,7 +23,7 @@ internal sealed class AgentSessionRepository : IAgentSessionRepository
 
     public async Task<IReadOnlyList<AgentSessionRecord>> ListAsync(AgentSessionFilter filter, int limit = 100, CancellationToken ct = default)
     {
-        var entities = await ApplyFilter(_eaosDbContext.AgentSessions.AsNoTracking(), filter)
+        var entities = await ApplyFilter(SessionGraph(_eaosDbContext.AgentSessions).AsNoTracking(), filter)
             .OrderByDescending(s => s.CreatedAt)
             .Take(limit)
             .ToListAsync(ct);
@@ -65,6 +65,9 @@ internal sealed class AgentSessionRepository : IAgentSessionRepository
     public async Task<IReadOnlyList<AgentSessionRecord>> ListByAgentAsync(Guid agentId, int limit = 20, CancellationToken ct = default)
     {
         var entities = await _eaosDbContext.AgentSessions
+            .Include(s => s.Runtime)
+            .Include(s => s.Repository)
+            .Include(s => s.PullRequest)
             .Where(s => s.AgentId == agentId)
             .OrderByDescending(s => s.CreatedAt)
             .Take(limit)
@@ -82,7 +85,8 @@ internal sealed class AgentSessionRepository : IAgentSessionRepository
 
     public async Task SaveAsync(AgentSessionRecord session, CancellationToken ct = default)
     {
-        var entity = await _eaosDbContext.AgentSessions.FirstOrDefaultAsync(item => item.Id == session.Id, ct);
+        var entity = await SessionGraph(_eaosDbContext.AgentSessions)
+            .FirstOrDefaultAsync(item => item.Id == session.Id, ct);
         if (entity is null)
         {
             _eaosDbContext.AgentSessions.Add(ToAgentSessionEntity(session));
@@ -100,7 +104,8 @@ internal sealed class AgentSessionRepository : IAgentSessionRepository
     {
         foreach (var record in _tracked.Values)
         {
-            var entity = await _eaosDbContext.AgentSessions.FindAsync(new object[] { record.Id }, ct);
+            var entity = await SessionGraph(_eaosDbContext.AgentSessions)
+                .FirstOrDefaultAsync(item => item.Id == record.Id, ct);
             if (entity is null) continue;
             MapToAgentSessionEntity(record, entity);
         }
@@ -109,6 +114,12 @@ internal sealed class AgentSessionRepository : IAgentSessionRepository
 
     public async Task<int> CountByAgentAsync(Guid agentId, CancellationToken ct = default)
         => await _eaosDbContext.AgentSessions.CountAsync(s => s.AgentId == agentId, ct);
+
+    private static IQueryable<AgentSessionEntity> SessionGraph(IQueryable<AgentSessionEntity> query)
+        => query
+            .Include(s => s.Runtime)
+            .Include(s => s.Repository)
+            .Include(s => s.PullRequest);
 
     private static AgentSessionRecord ToAgentSessionRecord(AgentSessionEntity e) => new()
     {
@@ -130,16 +141,9 @@ internal sealed class AgentSessionRepository : IAgentSessionRepository
         CreatedAt = e.CreatedAt,
         StartedAt = e.StartedAt,
         CompletedAt = e.CompletedAt,
-        SandboxId = e.SandboxId,
-        ServiceUrl = e.ServiceUrl,
-        RepositoryFullName = e.RepositoryFullName,
-        RepositoryCloneUrl = e.RepositoryCloneUrl,
-        RepositoryBaseBranch = e.RepositoryBaseBranch,
-        RepositoryCredentialRef = e.RepositoryCredentialRef,
-        RepositoryBranch = e.RepositoryBranch,
-        PullRequestUrl = e.PullRequestUrl,
-        PullRequestNumber = e.PullRequestNumber,
-        CommitSha = e.CommitSha,
+        Runtime = ToRuntimeRecord(e.Runtime),
+        Repository = ToRepositoryRecord(e.Repository),
+        PullRequest = ToPullRequestRecord(e.PullRequest),
         Agent = null,
     };
 
@@ -163,19 +167,12 @@ internal sealed class AgentSessionRepository : IAgentSessionRepository
         CreatedAt = r.CreatedAt,
         StartedAt = r.StartedAt,
         CompletedAt = r.CompletedAt,
-        SandboxId = r.SandboxId,
-        ServiceUrl = r.ServiceUrl,
-        RepositoryFullName = r.RepositoryFullName,
-        RepositoryCloneUrl = r.RepositoryCloneUrl,
-        RepositoryBaseBranch = r.RepositoryBaseBranch,
-        RepositoryCredentialRef = r.RepositoryCredentialRef,
-        RepositoryBranch = r.RepositoryBranch,
-        PullRequestUrl = r.PullRequestUrl,
-        PullRequestNumber = r.PullRequestNumber,
-        CommitSha = r.CommitSha,
+        Runtime = ToRuntimeEntity(r.Id, r.Runtime),
+        Repository = ToRepositoryEntity(r.Id, r.Repository),
+        PullRequest = ToPullRequestEntity(r.Id, r.PullRequest),
     };
 
-    private static void MapToAgentSessionEntity(AgentSessionRecord r, AgentSessionEntity e)
+    private void MapToAgentSessionEntity(AgentSessionRecord r, AgentSessionEntity e)
     {
         e.OwnerId = r.OwnerId;
         e.WorkspaceId = r.WorkspaceId;
@@ -192,15 +189,123 @@ internal sealed class AgentSessionRepository : IAgentSessionRepository
         e.LastActivityAt = r.LastActivityAt;
         e.StartedAt = r.StartedAt;
         e.CompletedAt = r.CompletedAt;
-        e.SandboxId = r.SandboxId;
-        e.ServiceUrl = r.ServiceUrl;
-        e.RepositoryFullName = r.RepositoryFullName;
-        e.RepositoryCloneUrl = r.RepositoryCloneUrl;
-        e.RepositoryBaseBranch = r.RepositoryBaseBranch;
-        e.RepositoryCredentialRef = r.RepositoryCredentialRef;
-        e.RepositoryBranch = r.RepositoryBranch;
-        e.PullRequestUrl = r.PullRequestUrl;
-        e.PullRequestNumber = r.PullRequestNumber;
-        e.CommitSha = r.CommitSha;
+        MapRuntimeEntity(r.Id, r.Runtime, e);
+        MapRepositoryEntity(r.Id, r.Repository, e);
+        MapPullRequestEntity(r.Id, r.PullRequest, e);
+    }
+
+    private static AgentSessionRuntimeRecord? ToRuntimeRecord(AgentSessionRuntimeEntity? e)
+        => e is null ? null : new AgentSessionRuntimeRecord(e.Id, e.SandboxId, e.ServiceUrl, e.CreatedAt);
+
+    private static AgentSessionRepositoryRecord? ToRepositoryRecord(AgentSessionRepositoryEntity? e)
+        => e is null ? null : new AgentSessionRepositoryRecord(e.Id, e.FullName, e.CloneUrl, e.BaseBranch, e.CredentialRef, e.Branch, e.CreatedAt);
+
+    private static AgentSessionPullRequestRecord? ToPullRequestRecord(AgentSessionPullRequestEntity? e)
+        => e is null ? null : new AgentSessionPullRequestRecord(e.Id, e.Url, e.Number, e.Branch, e.CommitSha, e.CreatedAt);
+
+    private static AgentSessionRuntimeEntity? ToRuntimeEntity(Guid sessionId, AgentSessionRuntimeRecord? r)
+        => r is null ? null : new AgentSessionRuntimeEntity
+        {
+            Id = r.Id,
+            SessionId = sessionId,
+            SandboxId = r.SandboxId,
+            ServiceUrl = r.ServiceUrl,
+            CreatedAt = r.CreatedAt,
+        };
+
+    private static AgentSessionRepositoryEntity? ToRepositoryEntity(Guid sessionId, AgentSessionRepositoryRecord? r)
+        => r is null ? null : new AgentSessionRepositoryEntity
+        {
+            Id = r.Id,
+            SessionId = sessionId,
+            FullName = r.FullName,
+            CloneUrl = r.CloneUrl,
+            BaseBranch = r.BaseBranch,
+            CredentialRef = r.CredentialRef,
+            Branch = r.Branch,
+            CreatedAt = r.CreatedAt,
+        };
+
+    private static AgentSessionPullRequestEntity? ToPullRequestEntity(Guid sessionId, AgentSessionPullRequestRecord? r)
+        => r is null ? null : new AgentSessionPullRequestEntity
+        {
+            Id = r.Id,
+            SessionId = sessionId,
+            Url = r.Url,
+            Number = r.Number,
+            Branch = r.Branch,
+            CommitSha = r.CommitSha,
+            CreatedAt = r.CreatedAt,
+        };
+
+    private void MapRuntimeEntity(Guid sessionId, AgentSessionRuntimeRecord? record, AgentSessionEntity entity)
+    {
+        if (record is null)
+        {
+            if (entity.Runtime is not null)
+            {
+                _eaosDbContext.AgentSessionRuntimes.Remove(entity.Runtime);
+                entity.Runtime = null;
+            }
+            return;
+        }
+
+        if (entity.Runtime is null)
+        {
+            entity.Runtime = new AgentSessionRuntimeEntity { Id = record.Id, SessionId = sessionId };
+            _eaosDbContext.AgentSessionRuntimes.Add(entity.Runtime);
+        }
+        entity.Runtime.SandboxId = record.SandboxId;
+        entity.Runtime.ServiceUrl = record.ServiceUrl;
+        entity.Runtime.CreatedAt = record.CreatedAt;
+    }
+
+    private void MapRepositoryEntity(Guid sessionId, AgentSessionRepositoryRecord? record, AgentSessionEntity entity)
+    {
+        if (record is null)
+        {
+            if (entity.Repository is not null)
+            {
+                _eaosDbContext.AgentSessionRepositories.Remove(entity.Repository);
+                entity.Repository = null;
+            }
+            return;
+        }
+
+        if (entity.Repository is null)
+        {
+            entity.Repository = new AgentSessionRepositoryEntity { Id = record.Id, SessionId = sessionId };
+            _eaosDbContext.AgentSessionRepositories.Add(entity.Repository);
+        }
+        entity.Repository.FullName = record.FullName;
+        entity.Repository.CloneUrl = record.CloneUrl;
+        entity.Repository.BaseBranch = record.BaseBranch;
+        entity.Repository.CredentialRef = record.CredentialRef;
+        entity.Repository.Branch = record.Branch;
+        entity.Repository.CreatedAt = record.CreatedAt;
+    }
+
+    private void MapPullRequestEntity(Guid sessionId, AgentSessionPullRequestRecord? record, AgentSessionEntity entity)
+    {
+        if (record is null)
+        {
+            if (entity.PullRequest is not null)
+            {
+                _eaosDbContext.AgentSessionPullRequests.Remove(entity.PullRequest);
+                entity.PullRequest = null;
+            }
+            return;
+        }
+
+        if (entity.PullRequest is null)
+        {
+            entity.PullRequest = new AgentSessionPullRequestEntity { Id = record.Id, SessionId = sessionId };
+            _eaosDbContext.AgentSessionPullRequests.Add(entity.PullRequest);
+        }
+        entity.PullRequest.Url = record.Url;
+        entity.PullRequest.Number = record.Number;
+        entity.PullRequest.Branch = record.Branch;
+        entity.PullRequest.CommitSha = record.CommitSha;
+        entity.PullRequest.CreatedAt = record.CreatedAt;
     }
 }

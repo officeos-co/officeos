@@ -63,6 +63,9 @@ internal sealed class AgentRepository : IAgentRepository
         var channelBindings = await _eaosDbContext.AgentChannelBindings.AsNoTracking()
             .Where(b => b.AgentId == entity.Id).ToListAsync(ct);
         var session = await _eaosDbContext.AgentSessions.AsNoTracking()
+            .Include(s => s.Runtime)
+            .Include(s => s.Repository)
+            .Include(s => s.PullRequest)
             .Where(s => s.AgentId == entity.Id)
             .OrderByDescending(s => s.CreatedAt).FirstOrDefaultAsync(ct);
 
@@ -189,16 +192,28 @@ internal sealed class AgentRepository : IAgentRepository
         CreatedAt = e.CreatedAt,
         StartedAt = e.StartedAt,
         CompletedAt = e.CompletedAt,
-        SandboxId = e.SandboxId,
-        ServiceUrl = e.ServiceUrl,
-        RepositoryFullName = e.RepositoryFullName,
-        RepositoryCloneUrl = e.RepositoryCloneUrl,
-        RepositoryBaseBranch = e.RepositoryBaseBranch,
-        RepositoryCredentialRef = e.RepositoryCredentialRef,
-        RepositoryBranch = e.RepositoryBranch,
-        PullRequestUrl = e.PullRequestUrl,
-        PullRequestNumber = e.PullRequestNumber,
-        CommitSha = e.CommitSha,
+        Runtime = e.Runtime is null
+            ? null
+            : new AgentSessionRuntimeRecord(e.Runtime.Id, e.Runtime.SandboxId, e.Runtime.ServiceUrl, e.Runtime.CreatedAt),
+        Repository = e.Repository is null
+            ? null
+            : new AgentSessionRepositoryRecord(
+                e.Repository.Id,
+                e.Repository.FullName,
+                e.Repository.CloneUrl,
+                e.Repository.BaseBranch,
+                e.Repository.CredentialRef,
+                e.Repository.Branch,
+                e.Repository.CreatedAt),
+        PullRequest = e.PullRequest is null
+            ? null
+            : new AgentSessionPullRequestRecord(
+                e.PullRequest.Id,
+                e.PullRequest.Url,
+                e.PullRequest.Number,
+                e.PullRequest.Branch,
+                e.PullRequest.CommitSha,
+                e.PullRequest.CreatedAt),
     };
 
     private static AgentChannelBindingRecord ToAgentChannelBindingRecord(AgentChannelBindingEntity e) => new()

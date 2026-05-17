@@ -20,16 +20,9 @@ public sealed class AgentSessionEntity
     public DateTime CreatedAt { get; set; }
     public DateTime? StartedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
-    public string? SandboxId { get; set; }
-    public string? ServiceUrl { get; set; }
-    public string? RepositoryFullName { get; set; }
-    public string? RepositoryCloneUrl { get; set; }
-    public string? RepositoryBaseBranch { get; set; }
-    public string? RepositoryCredentialRef { get; set; }
-    public string? RepositoryBranch { get; set; }
-    public string? PullRequestUrl { get; set; }
-    public int? PullRequestNumber { get; set; }
-    public string? CommitSha { get; set; }
     public AgentEntity? Agent { get; set; }
     public WorkspaceEntity? Workspace { get; set; }
+    public AgentSessionRuntimeEntity? Runtime { get; set; }
+    public AgentSessionRepositoryEntity? Repository { get; set; }
+    public AgentSessionPullRequestEntity? PullRequest { get; set; }
 }
