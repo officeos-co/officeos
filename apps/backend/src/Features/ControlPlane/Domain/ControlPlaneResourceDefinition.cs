@@ -9,9 +9,24 @@ public abstract class ControlPlaneResourceDefinition
     public abstract string Description { get; }
     public abstract string Icon { get; }
     public abstract IReadOnlyList<string> DisplayFields { get; }
+    protected virtual bool SupportsMessages => false;
+    protected virtual bool SupportsAuthentication => false;
     protected virtual bool SupportsDelete => true;
 
     public virtual IReadOnlyList<ControlPlaneResourceCapabilityRecord> Capabilities =>
+        OperationCapabilities().ToArray();
+
+    public ControlPlaneResourceDescriptor ToDescriptor() => new(
+        Kind,
+        Singular,
+        Aliases,
+        DisplayName,
+        Description,
+        Icon,
+        Capabilities,
+        DisplayFields);
+
+    private IReadOnlyList<ControlPlaneResourceCapabilityRecord> BaseCapabilities() =>
         SupportsDelete
             ?
             [
@@ -27,15 +42,15 @@ public abstract class ControlPlaneResourceDefinition
                 ControlPlaneResourceCapabilityRegistry.Logs,
             ];
 
-    public ControlPlaneResourceDescriptor ToDescriptor() => new(
-        Kind,
-        Singular,
-        Aliases,
-        DisplayName,
-        Description,
-        Icon,
-        Capabilities,
-        DisplayFields);
+    private IEnumerable<ControlPlaneResourceCapabilityRecord> OperationCapabilities()
+    {
+        foreach (var capability in BaseCapabilities())
+            yield return capability;
+        if (SupportsMessages)
+            yield return ControlPlaneResourceCapabilityRegistry.Messages;
+        if (SupportsAuthentication)
+            yield return ControlPlaneResourceCapabilityRegistry.Authentication;
+    }
 }
 
 public sealed class AgentControlPlaneResourceDefinition : ControlPlaneResourceDefinition
@@ -46,6 +61,7 @@ public sealed class AgentControlPlaneResourceDefinition : ControlPlaneResourceDe
     public override string Description => "Agent resources";
     public override string Icon => "hubot";
     public override IReadOnlyList<string> DisplayFields => ["name", "status", "provider", "model"];
+    protected override bool SupportsMessages => true;
 }
 
 public sealed class BrowserControlPlaneResourceDefinition : ControlPlaneResourceDefinition
@@ -130,6 +146,7 @@ public sealed class ProviderControlPlaneResourceDefinition : ControlPlaneResourc
     public override string Description => "Configured provider resources";
     public override string Icon => "server-process";
     public override IReadOnlyList<string> DisplayFields => ["name", "type", "configured", "phase"];
+    protected override bool SupportsAuthentication => true;
 }
 
 public sealed class RoutineControlPlaneResourceDefinition : ControlPlaneResourceDefinition

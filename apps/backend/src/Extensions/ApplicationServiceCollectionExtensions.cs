@@ -67,6 +67,17 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<ICliAuthService, CliAuthService>();
         services.AddScoped<IWorkspaceService, WorkspaceService>();
         services.AddSingleton<IControlPlaneResourceCatalogService, ControlPlaneResourceCatalogService>();
+        services.AddScoped<IControlPlaneResourceService, ControlPlaneResourceService>();
+        services.AddScoped<IControlPlaneResourceResolver, AgentControlPlaneResourceResolver>();
+        services.AddScoped<IControlPlaneResourceResolver, BrowserControlPlaneResourceResolver>();
+        services.AddScoped<IControlPlaneResourceResolver, ChannelControlPlaneResourceResolver>();
+        services.AddScoped<IControlPlaneResourceResolver, ControlPlaneControlPlaneResourceResolver>();
+        services.AddScoped<IControlPlaneResourceResolver, CredentialControlPlaneResourceResolver>();
+        services.AddScoped<IControlPlaneResourceResolver, IntegrationControlPlaneResourceResolver>();
+        services.AddScoped<IControlPlaneResourceResolver, MemoryStoreControlPlaneResourceResolver>();
+        services.AddScoped<IControlPlaneResourceResolver, ModelControlPlaneResourceResolver>();
+        services.AddScoped<IControlPlaneResourceResolver, ProviderControlPlaneResourceResolver>();
+        services.AddScoped<IControlPlaneResourceResolver, RoutineControlPlaneResourceResolver>();
 
         // Background services
         services.AddHostedService<AgentRoutineSchedulerService>();

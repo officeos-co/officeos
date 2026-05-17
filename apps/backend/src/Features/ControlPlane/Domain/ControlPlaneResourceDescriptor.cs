@@ -20,10 +20,16 @@ public sealed record DeleteControlPlaneResourceCapabilityRecord() : ControlPlane
 
 public sealed record LogsControlPlaneResourceCapabilityRecord() : ControlPlaneResourceCapabilityRecord("logs");
 
+public sealed record MessagesControlPlaneResourceCapabilityRecord() : ControlPlaneResourceCapabilityRecord("messages");
+
+public sealed record AuthenticationControlPlaneResourceCapabilityRecord() : ControlPlaneResourceCapabilityRecord("authentication");
+
 public static class ControlPlaneResourceCapabilityRegistry
 {
     public static readonly ListControlPlaneResourceCapabilityRecord List = new();
     public static readonly DescribeControlPlaneResourceCapabilityRecord Describe = new();
     public static readonly DeleteControlPlaneResourceCapabilityRecord Delete = new();
     public static readonly LogsControlPlaneResourceCapabilityRecord Logs = new();
+    public static readonly MessagesControlPlaneResourceCapabilityRecord Messages = new();
+    public static readonly AuthenticationControlPlaneResourceCapabilityRecord Authentication = new();
 }

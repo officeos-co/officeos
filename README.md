@@ -5,10 +5,10 @@
     <img src="apps/website/public/logo.svg" height="100" alt="OfficeOS logo" />
   </picture>
 </p>
-<h1 align="center">Launch in seconds. Scale to millions.</h1>
+<h1 align="center">Declarative infrastructure for coding agents.</h1>
 
 <p align="center">
-Open-source infrastructure for deploying, hosting, and managing fleets of AI agents across your infrastructure.
+Open-source, self-hosted control plane for defining, running, and operating repo-aware agents on your own cloud.
 </p>
 
 <p align="center">
@@ -21,9 +21,11 @@ Open-source infrastructure for deploying, hosting, and managing fleets of AI age
 
 <br/>
 
-OfficeOS is open-source, self-hosted, model-agnostic agent infrastructure: a control plane for running AI agents on your own cloud. Self-host the stack once, then launch agents on demand with their own virtual environment, attached browser, tools, persistent memory, credential access, structured logs, and isolated workspace.
+OfficeOS is a declarative framework for managing agents. You commit agent manifests next to your application code, apply them to the OfficeOS control plane, and run agents with isolated workspaces, scoped credentials, model-agnostic providers, MCP tools, persistent memory, attached browsers, and structured execution logs.
 
-The dashboard is the control plane for deploying agents, managing their capabilities, observing every turn, and operating them across teams and environments.
+The primary product surface is the `officeos` CLI and the manifest files in your repo. The dashboard is an operator surface for inspecting runs, approvals, logs, credentials, and fleet health.
+
+The first-class use case is coding work: clone a repo, understand the task, edit files, run declared verification commands, preserve artifacts, and hand back a patch or pull request with the full typed log trail. OfficeOS is not another chat wrapper around tools; it is the Kubernetes-style control plane for long-running agent work.
 
 Self-host the full stack with Docker Compose or Kubernetes.
 
@@ -37,16 +39,27 @@ https://github.com/user-attachments/assets/d7b8f2c9-350a-4058-a95f-994092c588db
 
 ## Highlights
 
-- **One control plane** — deploy, host, configure, and observe agents from the dashboard
-- **Fast agent launch** — go from a configured control plane to new isolated agents in seconds
-- **Fleet scale** — operate one agent or hundreds across your infrastructure
-- **Virtual environments** — every agent gets an isolated workspace with filesystem and shell access
+- **Manifest-first agents** — define agents, providers, tools, routines, credentials, policies, and runs as `officeos.io/v1` resources
+- **Coding work as a contract** — declare repo checkout, workspace behavior, command policy, verification commands, completion rules, and artifacts
+- **One control plane** — apply manifests, run agents, inspect logs, manage approvals, and operate fleets across workspaces
+- **Fast isolated launch** — each run gets a sandboxed workspace with filesystem and shell access
 - **Attached browsers** — every agent has browser capabilities for web workflows and automation
 - **Managed tools and MCP** — connect agents to built-in tools and MCP servers for external integrations
 - **Persistent memory** — store agent memory, conversations, and operational context centrally
 - **Credential management** — give agents scoped access to provider keys and integration secrets
 - **Structured logs** — inspect message, tool call, tool result, and agent output timelines
 - **Model-agnostic** — bring your own LLM keys for Anthropic, OpenAI, Google, xAI, and compatible providers
+
+## Why OfficeOS
+
+Hosted agent runtimes are useful when you want a provider to run the agent server for you. OfficeOS is for teams that want the agent control plane in their own cloud and want agent behavior to be reviewable, reproducible, and versioned in the same repo as the code it changes.
+
+The important boundary is declarative operation:
+
+- Declare what an agent is allowed to do instead of hand-wiring a one-off harness.
+- Declare how coding runs start, verify themselves, and finish.
+- Keep prompts, tools, credentials, schedules, channels, memory, and runtime policy under version control.
+- Treat every run as an auditable sequence of typed log entries, not an opaque chat transcript.
 
 ## Quick Start
 
