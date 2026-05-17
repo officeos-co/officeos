@@ -14,6 +14,7 @@ public sealed record ResourceLogQueryRequest(
     Guid? WorkspaceId = null,
     Guid? AgentId = null,
     IReadOnlyList<Guid>? AgentIds = null,
+    Guid? SessionId = null,
     Guid? ChannelConnectionId = null,
     string? ResourceKind = null,
     string? ResourceName = null,

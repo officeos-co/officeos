@@ -51,6 +51,25 @@ test("control-plane API calls backend v1 resource routes", async () => {
   ]);
 });
 
+test("resource catalog accepts backend capability objects", async () => {
+  mockFetch([], [
+    {
+      kind: "sessions",
+      singular: "session",
+      aliases: ["session"],
+      displayName: "Sessions",
+      description: "Agent execution sessions",
+      icon: "debug-console",
+      capabilities: [{ name: "list" }, { name: "describe" }, { name: "logs" }],
+      displayFields: ["id", "status"],
+    },
+  ]);
+
+  const catalog = await listResourceCatalog("http://localhost:5000/", "token");
+
+  expect(catalog[0]?.capabilities).toEqual(["list", "describe", "logs"]);
+});
+
 test("auth API calls backend v1 identity route", async () => {
   const requests: Array<{ url: string; method?: string }> = [];
   mockFetch(requests, { id: "user-1", email: "user@example.com" });

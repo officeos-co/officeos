@@ -158,3 +158,14 @@ public sealed class RoutineControlPlaneResourceDefinition : ControlPlaneResource
     public override string Icon => "clock";
     public override IReadOnlyList<string> DisplayFields => ["name", "agentName", "enabled", "createdAt"];
 }
+
+public sealed class SessionControlPlaneResourceDefinition : ControlPlaneResourceDefinition
+{
+    public override string Kind => "sessions";
+    public override string Singular => "session";
+    public override string DisplayName => "Sessions";
+    public override string Description => "Agent execution sessions";
+    public override string Icon => "debug-console";
+    public override IReadOnlyList<string> DisplayFields => ["id", "agentName", "status", "source", "purpose", "createdAt"];
+    protected override bool SupportsDelete => false;
+}

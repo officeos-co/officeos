@@ -219,9 +219,24 @@ function coerceResourceDescriptor(value: unknown): ResourceDescriptor {
     displayName: String(record.displayName ?? record.kind ?? ""),
     description: String(record.description ?? ""),
     icon: String(record.icon ?? "folder"),
-    capabilities: arrayOfStrings(record.capabilities),
+    capabilities: arrayOfCapabilityNames(record.capabilities),
     displayFields: arrayOfStrings(record.displayFields),
   };
+}
+
+function arrayOfCapabilityNames(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.map(capabilityName).filter((item): item is string => item.length > 0)
+    : [];
+}
+
+function capabilityName(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object") {
+    const name = (value as Record<string, unknown>).name;
+    return typeof name === "string" ? name : "";
+  }
+  return "";
 }
 
 function arrayOfStrings(value: unknown): string[] {

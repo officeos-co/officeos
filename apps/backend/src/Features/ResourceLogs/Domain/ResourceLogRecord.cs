@@ -166,6 +166,7 @@ public static class ResourceLogKinds
     public const string Model = "Model";
     public const string Provider = "Provider";
     public const string Routine = "Routine";
+    public const string Session = "Session";
     public const string Workspace = "Workspace";
     public const string WorkspaceBinding = "WorkspaceBinding";
 }

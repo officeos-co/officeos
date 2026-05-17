@@ -78,6 +78,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IControlPlaneResourceResolver, ModelControlPlaneResourceResolver>();
         services.AddScoped<IControlPlaneResourceResolver, ProviderControlPlaneResourceResolver>();
         services.AddScoped<IControlPlaneResourceResolver, RoutineControlPlaneResourceResolver>();
+        services.AddScoped<IControlPlaneResourceResolver, SessionControlPlaneResourceResolver>();
 
         // Background services
         services.AddHostedService<AgentRoutineSchedulerService>();

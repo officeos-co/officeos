@@ -145,7 +145,8 @@ export async function sendCommand(args: string[]): Promise<void> {
 function printAgentWork(
   result: Awaited<ReturnType<typeof sendAgentMessage>>,
 ): void {
-  print(`agent/${result.agentName}\twork/${result.workLogId}\t${result.status}`);
+  const session = result.sessionId ? `\tsession/${result.sessionId}` : "";
+  print(`agent/${result.agentName}\twork/${result.workLogId}${session}\t${result.status}`);
 }
 
 export async function logsCommand(args: string[]): Promise<void> {

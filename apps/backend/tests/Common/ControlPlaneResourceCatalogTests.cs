@@ -21,6 +21,7 @@ public sealed class ControlPlaneResourceCatalogTests
         Assert.Contains(resources, resource => resource.Kind == "agents" && resource.Capabilities.OfType<LogsControlPlaneResourceCapabilityRecord>().Any());
         Assert.Contains(resources, resource => resource.Kind == "credentials" && resource.Aliases.Contains("credential"));
         Assert.Contains(resources, resource => resource.Kind == "models" && !resource.Capabilities.OfType<DeleteControlPlaneResourceCapabilityRecord>().Any());
+        Assert.Contains(resources, resource => resource.Kind == "sessions" && resource.Capabilities.OfType<LogsControlPlaneResourceCapabilityRecord>().Any());
         Assert.Equal("memory-stores", catalog.Find("memorystore")?.Kind);
         Assert.All(resources, resource => Assert.Contains(resource.Capabilities, capability => capability is LogsControlPlaneResourceCapabilityRecord));
     }

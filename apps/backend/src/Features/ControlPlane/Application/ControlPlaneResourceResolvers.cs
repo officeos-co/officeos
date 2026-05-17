@@ -142,6 +142,7 @@ internal sealed class AgentControlPlaneResourceResolver : ControlPlaneResourceRe
         {
             kind = "AgentWork",
             agentId = agent.Id,
+            sessionId = work.SessionId,
             agentName = agent.Name,
             workLogId = work.Id,
             correlationId = work.CorrelationId,
@@ -724,4 +725,97 @@ internal sealed class RoutineControlPlaneResourceResolver : ControlPlaneResource
             trigger.NextRunAt,
             trigger.CreatedAt,
         })));
+}
+
+internal sealed class SessionControlPlaneResourceResolver : ControlPlaneResourceResolver
+{
+    private readonly IAgentSessionRepository _agentSessionRepository;
+    private readonly IAgentRepository _agentRepository;
+
+    public SessionControlPlaneResourceResolver(
+        IAgentSessionRepository agentSessionRepository,
+        IAgentRepository agentRepository)
+    {
+        _agentSessionRepository = agentSessionRepository;
+        _agentRepository = agentRepository;
+    }
+
+    public override string Kind => "sessions";
+
+    public override async Task<IReadOnlyList<ControlPlaneResourceRecord>> ListAsync(
+        ControlPlaneResourceScope scope,
+        CancellationToken ct = default)
+    {
+        var sessions = await _agentSessionRepository.ListAsync(new AgentSessionFilter { WorkspaceId = scope.WorkspaceId }, 100, ct);
+        var agents = await _agentRepository.ListAsync(new AgentFilter { WorkspaceId = scope.WorkspaceId }, ct);
+        var agentNames = agents.ToDictionary(agent => agent.Id, agent => agent.Name);
+        return sessions.Select(session => ToResource(session, agentNames.GetValueOrDefault(session.AgentId))).ToArray();
+    }
+
+    public override async Task<ControlPlaneResourceRecord?> DescribeAsync(
+        ControlPlaneResourceScope scope,
+        string name,
+        CancellationToken ct = default)
+    {
+        var session = await FindSessionAsync(scope.WorkspaceId, name, ct);
+        if (session is null)
+            return null;
+
+        var agent = await _agentRepository.GetByAsync(new AgentFilter { Id = session.AgentId, WorkspaceId = scope.WorkspaceId }, ct);
+        return ToResource(session, agent?.Name);
+    }
+
+    private async Task<AgentSessionRecord?> FindSessionAsync(Guid workspaceId, string name, CancellationToken ct)
+    {
+        if (Guid.TryParse(name, out var id))
+            return await _agentSessionRepository.GetByAsync(new AgentSessionFilter { Id = id, WorkspaceId = workspaceId }, ct);
+
+        var sessions = await _agentSessionRepository.ListAsync(new AgentSessionFilter { WorkspaceId = workspaceId }, 1000, ct);
+        return sessions.FirstOrDefault(session => session.Id.ToString("N").StartsWith(name.Replace("-", string.Empty), StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static ControlPlaneResourceRecord ToResource(AgentSessionRecord session, string? agentName) => Resource(
+        ResourceLogKinds.Session,
+        session.Id.ToString(),
+        session.Id,
+        ("agentId", session.AgentId),
+        ("agentName", agentName),
+        ("ownerId", session.OwnerId),
+        ("workspaceId", session.WorkspaceId),
+        ("source", session.Source),
+        ("purpose", session.Purpose),
+        ("status", session.Status.ToStorageString()),
+        ("correlationId", session.CorrelationId),
+        ("routineId", session.RoutineId),
+        ("triggerId", session.TriggerId),
+        ("definitionId", session.DefinitionId),
+        ("input", session.Input),
+        ("lastActivityAt", session.LastActivityAt),
+        ("createdAt", session.CreatedAt),
+        ("startedAt", session.StartedAt),
+        ("completedAt", session.CompletedAt),
+        ("error", session.Error),
+        ("runtime", session.Runtime is null ? null : new
+        {
+            session.Runtime.SandboxId,
+            session.Runtime.ServiceUrl,
+            session.Runtime.CreatedAt,
+        }),
+        ("repository", session.Repository is null ? null : new
+        {
+            session.Repository.FullName,
+            session.Repository.CloneUrl,
+            session.Repository.BaseBranch,
+            session.Repository.CredentialRef,
+            session.Repository.Branch,
+            session.Repository.CreatedAt,
+        }),
+        ("pullRequest", session.PullRequest is null ? null : new
+        {
+            session.PullRequest.Url,
+            session.PullRequest.Number,
+            session.PullRequest.Branch,
+            session.PullRequest.CommitSha,
+            session.PullRequest.CreatedAt,
+        }));
 }

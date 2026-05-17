@@ -5,6 +5,7 @@ const ApiBasePath = "/api/v1";
 export interface AgentWorkResponse {
   kind: "AgentWork";
   agentId: string;
+  sessionId?: string | null;
   agentName: string;
   workLogId: string;
   correlationId?: string | null;
@@ -44,7 +45,8 @@ export interface CodexProviderAuthRequest {
 }
 
 export async function listResourceCatalog(apiUrl: string, token: string): Promise<ResourceDescriptor[]> {
-  return await new ApiClient({ apiUrl, token }).get<ResourceDescriptor[]>(`${ApiBasePath}/resources`);
+  const value = await new ApiClient({ apiUrl, token }).get<unknown[]>(`${ApiBasePath}/resources`);
+  return Array.isArray(value) ? value.map(coerceResourceDescriptor) : [];
 }
 
 export async function listResources(apiUrl: string, token: string, kind: string): Promise<unknown[]> {
@@ -91,4 +93,46 @@ export async function listModels(apiUrl: string, token: string): Promise<unknown
 
 export async function authenticateCodexProvider(apiUrl: string, token: string, body: CodexProviderAuthRequest): Promise<unknown> {
   return await new ApiClient({ apiUrl, token }).post<unknown>(`${ApiBasePath}/resources/providers/codex/auth`, body);
+}
+
+function coerceResourceDescriptor(value: unknown): ResourceDescriptor {
+  const record = value && typeof value === "object"
+    ? value as Record<string, unknown>
+    : {};
+
+  return {
+    kind: stringValue(record.kind),
+    singular: stringValue(record.singular),
+    aliases: arrayOfStrings(record.aliases),
+    displayName: stringValue(record.displayName || record.kind),
+    description: stringValue(record.description),
+    icon: stringValue(record.icon || "folder"),
+    capabilities: arrayOfCapabilityNames(record.capabilities),
+    displayFields: arrayOfStrings(record.displayFields),
+  };
+}
+
+function arrayOfCapabilityNames(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.map(capabilityName).filter((item): item is string => item.length > 0)
+    : [];
+}
+
+function capabilityName(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object") {
+    const name = (value as Record<string, unknown>).name;
+    return typeof name === "string" ? name : "";
+  }
+  return "";
+}
+
+function arrayOfStrings(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
+}
+
+function stringValue(value: unknown): string {
+  return typeof value === "string" ? value : "";
 }

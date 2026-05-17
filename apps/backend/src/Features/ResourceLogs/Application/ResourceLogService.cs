@@ -95,6 +95,7 @@ internal sealed class ResourceLogService : IResourceLogService
             "model" or "models" => ResourceLogKinds.Model,
             "provider" or "providers" => ResourceLogKinds.Provider,
             "routine" or "routines" => ResourceLogKinds.Routine,
+            "session" or "sessions" => ResourceLogKinds.Session,
             _ => kind.Trim(),
         };
     }
@@ -104,6 +105,7 @@ internal sealed class ResourceLogService : IResourceLogService
         WorkspaceId = request.WorkspaceId,
         AgentId = request.AgentId,
         AgentIds = request.AgentIds,
+        SessionId = request.SessionId,
         ChannelConnectionId = request.ChannelConnectionId,
         ResourceKind = string.IsNullOrWhiteSpace(request.ResourceKind) ? null : NormalizeResourceKind(request.ResourceKind),
         ResourceId = request.ResourceId,

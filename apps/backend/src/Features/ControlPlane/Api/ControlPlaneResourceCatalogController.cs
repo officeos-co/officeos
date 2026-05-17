@@ -199,11 +199,13 @@ public sealed class ControlPlaneResourceCatalogController : ControllerBase
         }
 
         var resourceId = Guid.TryParse(name, out var parsedResourceId) ? parsedResourceId : (Guid?)null;
+        var isSessionResource = resourceKind == ResourceLogKinds.Session;
         var page = await resourceLogService.ListAsync(new ResourceLogQueryRequest(
             WorkspaceId: scope.WorkspaceId,
-            ResourceKind: resourceKind,
-            ResourceName: name,
-            ResourceId: resourceId,
+            SessionId: isSessionResource ? resourceId : null,
+            ResourceKind: isSessionResource ? null : resourceKind,
+            ResourceName: isSessionResource ? null : name,
+            ResourceId: isSessionResource ? null : resourceId,
             Type: parsedType,
             WorkStatus: workStatus,
             WorkPurpose: purpose,
@@ -295,6 +297,7 @@ public sealed class ControlPlaneResourceCatalogController : ControllerBase
         var sent = new HashSet<Guid>();
         var from = sinceTime ?? ParseSince(since);
         var resourceId = Guid.TryParse(name, out var parsedResourceId) ? parsedResourceId : (Guid?)null;
+        var isSessionResource = kind == ResourceLogKinds.Session;
 
         try
         {
@@ -302,9 +305,10 @@ public sealed class ControlPlaneResourceCatalogController : ControllerBase
             {
                 var page = await resourceLogService.ListAsync(new ResourceLogQueryRequest(
                     WorkspaceId: workspaceId,
-                    ResourceKind: kind,
-                    ResourceName: name,
-                    ResourceId: resourceId,
+                    SessionId: isSessionResource ? resourceId : null,
+                    ResourceKind: isSessionResource ? null : kind,
+                    ResourceName: isSessionResource ? null : name,
+                    ResourceId: isSessionResource ? null : resourceId,
                     Type: type,
                     WorkStatus: workStatus,
                     WorkPurpose: purpose,
